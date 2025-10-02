@@ -18,6 +18,7 @@ from pynini.lib import pynutil
 
 from nemo_text_processing.text_normalization.vi.graph_utils import NEMO_DIGIT, GraphFst
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
+from nemo_text_processing.text_normalization.vi.vietnamese_phonetic_rules import VietnamesePhoneticRules
 
 
 class OrdinalFst(GraphFst):
@@ -38,19 +39,26 @@ class OrdinalFst(GraphFst):
         prefix = "thứ "
         number_pattern = pynini.closure(NEMO_DIGIT, 1)
 
+        # Load ordinal exceptions
         ordinal_exceptions = {
             row[0]: row[1] for row in load_labels(get_abs_path("data/ordinal/ordinal_exceptions.tsv"))
         }
 
-        exception_patterns = []
-        for digit, word in ordinal_exceptions.items():
-            exception_patterns.append(pynini.cross(digit, word))
+        # Enhanced non-deterministic support
+        if not deterministic:
+            self.phonetic_rules = VietnamesePhoneticRules()
+            enhanced_exceptions = self._create_enhanced_ordinal_exceptions(ordinal_exceptions)
+            combined_graph = self._create_enhanced_ordinal_graph(cardinal, enhanced_exceptions)
+        else:
+            # Standard deterministic behavior
+            exception_patterns = []
+            for digit, word in ordinal_exceptions.items():
+                exception_patterns.append(pynini.cross(digit, word))
 
-        exception_graph = pynini.union(*exception_patterns) if exception_patterns else None
-
-        combined_graph = cardinal.graph
-        if exception_graph:
-            combined_graph = pynini.union(exception_graph, cardinal.graph)
+            exception_graph = pynini.union(*exception_patterns) if exception_patterns else None
+            combined_graph = cardinal.graph
+            if exception_graph:
+                combined_graph = pynini.union(exception_graph, cardinal.graph)
 
         self.graph = (
             pynutil.delete(prefix)
@@ -60,3 +68,65 @@ class OrdinalFst(GraphFst):
         )
 
         self.fst = self.add_tokens(self.graph).optimize()
+    
+    def _create_enhanced_ordinal_exceptions(self, base_exceptions):
+        """Create enhanced ordinal exceptions using systematic rules"""
+        enhanced = dict(base_exceptions)
+        
+        # Use systematic rule-based alternatives instead of hardcoded dict
+        for i in range(1, 100):  # Cover common ordinals
+            number_str = str(i)
+            if number_str not in enhanced:  # Don't override existing exceptions
+                ordinal_alts = self.phonetic_rules.generate_ordinal_alternatives(number_str)
+                if len(ordinal_alts) > 1:  # Only add if there are alternatives
+                    enhanced[number_str] = ordinal_alts
+        
+        return enhanced
+    
+    def _create_enhanced_ordinal_graph(self, cardinal, enhanced_exceptions):
+        """Create enhanced ordinal graph with systematic rule-based alternatives"""
+        try:
+            # Create exception patterns with alternatives
+            exception_patterns = []
+            for digit, alternatives in enhanced_exceptions.items():
+                if isinstance(alternatives, list):
+                    for alt in alternatives:
+                        exception_patterns.append(pynini.cross(digit, alt))
+                else:
+                    exception_patterns.append(pynini.cross(digit, alternatives))
+            
+            # Use systematic range generation instead of hardcoded loops
+            range_alternatives = self.phonetic_rules.get_systematic_range_alternatives(100, 999, "general")
+            rule_based_patterns = []
+            
+            for number_str, alternatives in range_alternatives.items():
+                if number_str not in enhanced_exceptions:  # Don't override exceptions
+                    for alt in alternatives:
+                        rule_based_patterns.append(pynini.cross(number_str, alt))
+            
+            # Combine all patterns
+            all_patterns = exception_patterns + rule_based_patterns
+            if all_patterns:
+                enhanced_graph = pynini.union(*all_patterns)
+                # Also include standard cardinal graph as fallback
+                combined_graph = pynini.union(enhanced_graph, cardinal.graph)
+            else:
+                combined_graph = cardinal.graph
+                
+            return combined_graph.optimize()
+            
+        except Exception as e:
+            print(f"Warning: Could not create enhanced ordinal graph: {e}")
+            # Fallback to standard behavior
+            exception_patterns = []
+            for digit, alternatives in enhanced_exceptions.items():
+                if isinstance(alternatives, list):
+                    exception_patterns.append(pynini.cross(digit, alternatives[0]))
+                else:
+                    exception_patterns.append(pynini.cross(digit, alternatives))
+            
+            exception_graph = pynini.union(*exception_patterns) if exception_patterns else None
+            combined_graph = cardinal.graph
+            if exception_graph:
+                combined_graph = pynini.union(exception_graph, cardinal.graph)
+            return combined_graph

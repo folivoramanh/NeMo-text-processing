@@ -17,6 +17,7 @@ from pynini.lib import pynutil
 
 from nemo_text_processing.text_normalization.vi.graph_utils import NEMO_COMMA, NEMO_DIGIT, NEMO_SPACE, GraphFst
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
+from nemo_text_processing.text_normalization.vi.vietnamese_phonetic_rules import VietnamesePhoneticRules
 
 
 class DecimalFst(GraphFst):
@@ -36,8 +37,15 @@ class DecimalFst(GraphFst):
 
         cardinal_graph = cardinal.graph_with_and
         self.graph = cardinal.single_digits_graph.optimize()
+        
+        # Enhanced non-deterministic support with rule-based alternatives
         if not deterministic:
             self.graph = self.graph | cardinal_graph
+            # Add rule-based alternatives for fractional parts
+            self.phonetic_rules = VietnamesePhoneticRules()
+            self._enhanced_fractional_graph = self._create_enhanced_fractional_graph()
+        else:
+            self._enhanced_fractional_graph = None
 
         # Load data
         digit_labels = load_labels(get_abs_path("data/numbers/digit.tsv"))
@@ -45,26 +53,40 @@ class DecimalFst(GraphFst):
         magnitude_labels = load_labels(get_abs_path("data/numbers/magnitudes.tsv"))
         quantity_abbr_labels = load_labels(get_abs_path("data/numbers/quantity_abbr.tsv"))
 
-        # Common components
-        single_digit_map = pynini.union(*[pynini.cross(k, v) for k, v in digit_labels + zero_labels])
+        # Enhanced digit mapping for non-deterministic mode
+        if not deterministic:
+            single_digit_map = self._create_enhanced_digit_map(digit_labels, zero_labels)
+        else:
+            single_digit_map = pynini.union(*[pynini.cross(k, v) for k, v in digit_labels + zero_labels])
+            
         quantity_units = pynini.union(*[v for _, v in magnitude_labels])
         one_to_three_digits = NEMO_DIGIT + pynini.closure(NEMO_DIGIT, 0, 2)
 
-        # Building blocks
+        # Enhanced building blocks
         integer_part = pynutil.insert("integer_part: \"") + cardinal_graph + pynutil.insert("\"")
-        fractional_part = (
-            pynutil.insert("fractional_part: \"")
-            + single_digit_map
-            + pynini.closure(pynutil.insert(NEMO_SPACE) + single_digit_map)
-            + pynutil.insert("\"")
-        )
+        
+        # Enhanced fractional part with alternatives
+        if not deterministic and self._enhanced_fractional_graph:
+            fractional_part = (
+                pynutil.insert("fractional_part: \"")
+                + self._enhanced_fractional_graph
+                + pynutil.insert("\"")
+            )
+        else:
+            fractional_part = (
+                pynutil.insert("fractional_part: \"")
+                + single_digit_map
+                + pynini.closure(pynutil.insert(NEMO_SPACE) + single_digit_map)
+                + pynutil.insert("\"")
+            )
+            
         optional_quantity = (
             pynutil.delete(NEMO_SPACE).ques + pynutil.insert(" quantity: \"") + quantity_units + pynutil.insert("\"")
         ).ques
 
         patterns = []
 
-        # 1. Basic decimal patterns: 12,5 and 12,5 tỷ
+        # 1. Enhanced basic decimal patterns with alternatives
         basic_decimal = (
             (integer_part + pynutil.insert(NEMO_SPACE)).ques
             + pynutil.delete(NEMO_COMMA)
@@ -113,7 +135,7 @@ class DecimalFst(GraphFst):
             )
             patterns.append(abbr_pattern)
 
-        # 5. Decimal with abbreviations: 2,5tr, but avoid measure conflicts
+        # 5. Enhanced decimal with abbreviations: 2,5tr
         measure_prefix_labels = load_labels(get_abs_path("data/measure/prefixes.tsv"))
         measure_prefixes = {prefix.lower() for prefix, _ in measure_prefix_labels}
 
@@ -150,6 +172,12 @@ class DecimalFst(GraphFst):
             )
             patterns.append(pynini.compose(pattern, expansion))
 
+        # 7. Non-deterministic: Add digit-by-digit reading for long decimals
+        if not deterministic:
+            digit_by_digit_pattern = self._create_digit_by_digit_decimal_pattern(single_digit_map)
+            if digit_by_digit_pattern:
+                patterns.append(digit_by_digit_pattern)
+
         # Combine all patterns
         self._final_graph_wo_negative = pynini.union(*patterns).optimize()
 
@@ -163,3 +191,82 @@ class DecimalFst(GraphFst):
     def final_graph_wo_negative(self):
         """Graph without negative prefix, used by MoneyFst"""
         return self._final_graph_wo_negative
+    
+    def _create_enhanced_digit_map(self, digit_labels, zero_labels):
+        """Create enhanced digit mapping using systematic rules"""
+        basic_map = pynini.union(*[pynini.cross(k, v) for k, v in digit_labels + zero_labels])
+        
+        # Use systematic rule-based alternatives instead of hardcoded patterns
+        alternatives = []
+        
+        # Generate alternatives for all digits systematically
+        for digit in "0123456789":
+            digit_alts = self.phonetic_rules.generate_decimal_digit_alternatives(digit, "fractional")
+            for alt in digit_alts:
+                alternatives.append(pynini.cross(digit, alt))
+        
+        # Combine basic and alternative mappings
+        enhanced_map = basic_map
+        if alternatives:
+            enhanced_map = basic_map | pynini.union(*alternatives)
+            
+        return enhanced_map.optimize()
+    
+    def _create_enhanced_fractional_graph(self):
+        """Create enhanced fractional part graph with alternatives"""
+        try:
+            # Load basic digit mappings
+            digit_labels = load_labels(get_abs_path("data/numbers/digit.tsv"))
+            zero_labels = load_labels(get_abs_path("data/numbers/zero.tsv"))
+            
+            # Create enhanced digit map
+            enhanced_digit_map = self._create_enhanced_digit_map(digit_labels, zero_labels)
+            
+            # Build fractional graph with enhanced alternatives
+            fractional_graph = enhanced_digit_map + pynini.closure(
+                pynutil.insert(NEMO_SPACE) + enhanced_digit_map
+            )
+            
+            return fractional_graph.optimize()
+            
+        except Exception as e:
+            print(f"Warning: Could not create enhanced fractional graph: {e}")
+            # Fallback to basic mapping
+            basic_map = pynini.union(*[pynini.cross(k, v) for k, v in digit_labels + zero_labels])
+            return basic_map + pynini.closure(pynutil.insert(NEMO_SPACE) + basic_map)
+    
+    def _create_digit_by_digit_decimal_pattern(self, single_digit_map):
+        """Create digit-by-digit reading pattern for long decimals"""
+        try:
+            # Pattern for long decimal numbers (e.g., 3.14159 -> "ba phẩy một bốn một năm chín")
+            # This is useful for scientific numbers, coordinates, etc.
+            
+            integer_digits = pynini.closure(NEMO_DIGIT, 1, 4)  # 1-4 digits before decimal
+            fractional_digits = pynini.closure(NEMO_DIGIT, 3, 10)  # 3+ digits after decimal (long)
+            
+            # Create digit-by-digit reading for both parts
+            integer_digit_by_digit = pynini.compose(integer_digits, 
+                single_digit_map + pynini.closure(pynutil.insert(NEMO_SPACE) + single_digit_map))
+            
+            fractional_digit_by_digit = pynini.compose(fractional_digits,
+                single_digit_map + pynini.closure(pynutil.insert(NEMO_SPACE) + single_digit_map))
+            
+            # Combine with decimal point handling
+            digit_by_digit_pattern = (
+                pynutil.insert("integer_part: \"")
+                + integer_digit_by_digit
+                + pynutil.insert("\"")
+                + pynutil.insert(NEMO_SPACE)
+                + pynutil.delete(NEMO_COMMA)
+                + pynutil.insert(NEMO_SPACE)
+                + pynutil.insert("fractional_part: \"")
+                + fractional_digit_by_digit
+                + pynutil.insert("\"")
+            )
+            
+            # Add weight to make it lower priority than standard decimal reading
+            return pynutil.add_weight(digit_by_digit_pattern, 0.1)
+            
+        except Exception as e:
+            print(f"Warning: Could not create digit-by-digit decimal pattern: {e}")
+            return None

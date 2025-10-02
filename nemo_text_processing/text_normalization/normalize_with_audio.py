@@ -234,7 +234,7 @@ class NormalizerWithAudio(Normalizer):
             tagged_texts = self._get_tagged_text(text, n_tagged)
 
         # non-deterministic Eng normalization uses tagger composed with verbalizer, no permutation in between
-        if self.lang == "en":
+        if self.lang == "en" or self.lang == "vi":
             normalized_texts = tagged_texts
             normalized_texts = [self.post_process(text) for text in normalized_texts]
         else:
@@ -430,7 +430,7 @@ def parse_args():
         "--input_case", help="input capitalization", choices=["lower_cased", "cased"], default="cased", type=str
     )
     parser.add_argument(
-        "--language", help="Select target language", choices=["en", "ru", "de", "es", "sv"], default="en", type=str
+        "--language", help="Select target language", choices=["en", "ru", "de", "es", "sv", "vi"], default="en", type=str
     )
     parser.add_argument("--manifest", default=None, help="path to .json manifest")
     parser.add_argument(

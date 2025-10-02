@@ -17,6 +17,7 @@ from pynini.lib import pynutil
 
 from nemo_text_processing.text_normalization.vi.graph_utils import NEMO_DIGIT, GraphFst, insert_space
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
+from nemo_text_processing.text_normalization.vi.vietnamese_phonetic_rules import VietnamesePhoneticRules
 
 
 class CardinalFst(GraphFst):
@@ -94,7 +95,11 @@ class CardinalFst(GraphFst):
         self.graph_with_and = self.graph
 
         negative = pynini.closure(pynutil.insert("negative: ") + pynini.cross("-", "\"true\" "), 0, 1)
-        final_graph = negative + pynutil.insert("integer: \"") + self.graph + pynutil.insert("\"")
+        
+        # Get final graph based on deterministic flag
+        final_cardinal_graph = self._get_final_graph(deterministic)
+        
+        final_graph = negative + pynutil.insert("integer: \"") + final_cardinal_graph + pynutil.insert("\"")
         self.fst = self.add_tokens(final_graph).optimize()
 
     def _build_magnitude_pattern(self, name, min_digits, max_digits, zero_count, prev_pattern=None):
@@ -233,3 +238,64 @@ class CardinalFst(GraphFst):
             return self.magnitude_patterns.get("billion")
         else:
             return None
+
+    def _create_non_deterministic_graph(self):
+        """Create non-deterministic alternatives using rule-based system"""
+        try:
+            # Initialize rule-based alternative generator
+            phonetic_rules = VietnamesePhoneticRules()
+            
+            # Generate alternatives for common number ranges
+            alt_pairs = []
+            
+            # Single digits (0-9)
+            for i in range(10):
+                alternatives = phonetic_rules.generate_alternatives(str(i), "general")
+                for alt in alternatives:
+                    alt_pairs.append([str(i), alt])
+            
+            # Two digits (10-99) 
+            for i in range(10, 100):
+                alternatives = phonetic_rules.generate_alternatives(str(i), "general")
+                for alt in alternatives:
+                    alt_pairs.append([str(i), alt])
+                    
+            # Three digits (100-999) - maximum coverage
+            for i in range(100, 1000):
+                alternatives = phonetic_rules.generate_alternatives(str(i), "general")
+                for alt in alternatives:
+                    alt_pairs.append([str(i), alt])
+            
+            # Create FST from all alternatives
+            if alt_pairs:
+                alt_graph = pynini.string_map(alt_pairs)
+                return alt_graph.optimize()
+            else:
+                return pynini.accep("")
+                
+        except Exception as e:
+            print(f"Warning: Could not generate rule-based alternatives: {e}")
+            # Fallback to empty graph
+            return pynini.accep("")
+
+    def _get_final_graph(self, deterministic: bool):
+        """Get final graph based on deterministic flag"""
+        # Base deterministic graph - use self.graph instead of self.patterns
+        base_graph = self.graph
+        
+        if not deterministic:
+            # Add non-deterministic alternatives
+            alt_graph = self._create_non_deterministic_graph()
+            
+            if alt_graph and alt_graph.num_states() > 1:
+                # Add alternatives with lower weight (higher preference for deterministic)
+                final_graph = pynini.union(
+                    base_graph,
+                    pynutil.add_weight(alt_graph, 0.1)
+                )
+            else:
+                final_graph = base_graph
+        else:
+            final_graph = base_graph
+            
+        return final_graph
