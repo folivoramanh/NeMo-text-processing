@@ -31,6 +31,7 @@ from nemo_text_processing.text_normalization.vi.taggers.cardinal import Cardinal
 from nemo_text_processing.text_normalization.vi.taggers.date import DateFst
 from nemo_text_processing.text_normalization.vi.taggers.decimal import DecimalFst
 from nemo_text_processing.text_normalization.vi.taggers.fraction import FractionFst
+from nemo_text_processing.text_normalization.vi.taggers.measure import MeasureFst
 from nemo_text_processing.text_normalization.vi.taggers.money import MoneyFst
 from nemo_text_processing.text_normalization.vi.taggers.ordinal import OrdinalFst
 from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
@@ -40,6 +41,7 @@ from nemo_text_processing.text_normalization.vi.verbalizers.cardinal import Card
 from nemo_text_processing.text_normalization.vi.verbalizers.date import DateFst as VDateFst
 from nemo_text_processing.text_normalization.vi.verbalizers.decimal import DecimalFst as VDecimalFst
 from nemo_text_processing.text_normalization.vi.verbalizers.fraction import FractionFst as VFractionFst
+from nemo_text_processing.text_normalization.vi.verbalizers.measure import MeasureFst as VMeasureFst
 from nemo_text_processing.text_normalization.vi.verbalizers.money import MoneyFst as VMoneyFst
 from nemo_text_processing.text_normalization.vi.verbalizers.ordinal import OrdinalFst as VOrdinalFst
 from nemo_text_processing.utils.logging import logger
@@ -128,6 +130,11 @@ class ClassifyFst(GraphFst):
             money_graph = money.fst
             logger.debug(f"money: {time.time() - start_time: .2f}s -- {money_graph.num_states()} nodes")
 
+            start_time = time.time()
+            measure = MeasureFst(cardinal=cardinal, decimal=decimal, fraction=fraction, deterministic=deterministic)
+            measure_graph = measure.fst
+            logger.debug(f"measure: {time.time() - start_time: .2f}s -- {measure_graph.num_states()} nodes")
+
             # VERBALIZERS - Compose with taggers like English
             start_time = time.time()
             v_cardinal = VCardinalFst(deterministic=deterministic)
@@ -159,6 +166,11 @@ class ClassifyFst(GraphFst):
             v_money_graph = v_money.fst
             logger.debug(f"v_money: {time.time() - start_time: .2f}s -- {v_money_graph.num_states()} nodes")
 
+            start_time = time.time()
+            v_measure = VMeasureFst(cardinal=v_cardinal, decimal=v_decimal, fraction=v_fraction, deterministic=deterministic)
+            v_measure_graph = v_measure.fst
+            logger.debug(f"v_measure: {time.time() - start_time: .2f}s -- {v_measure_graph.num_states()} nodes")
+
             # COMPOSE TAGGERS + VERBALIZERS (like English approach)
             start_time = time.time()
             classify_and_verbalize = (
@@ -169,6 +181,7 @@ class ClassifyFst(GraphFst):
                 | pynutil.add_weight(pynini.compose(ordinal_graph, v_ordinal_graph), 1.07)
                 | pynutil.add_weight(pynini.compose(fraction_graph, v_fraction_graph), 1.06)
                 | pynutil.add_weight(pynini.compose(money_graph, v_money_graph), 1.05)
+                | pynutil.add_weight(pynini.compose(measure_graph, v_measure_graph), 1.04)
                 | pynutil.add_weight(word_graph, 100)
             ).optimize()
             logger.debug(f"classify_and_verbalize: {time.time() - start_time: .2f}s -- {classify_and_verbalize.num_states()} nodes")

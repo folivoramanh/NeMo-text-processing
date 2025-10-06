@@ -23,6 +23,7 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     delete_space,
 )
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path
+from nemo_text_processing.text_normalization.vi.vietnamese_phonetic_rules import VietnamesePhoneticRules
 
 
 class MeasureFst(GraphFst):
@@ -63,7 +64,15 @@ class MeasureFst(GraphFst):
     ):
         super().__init__(name="measure", kind="classify", deterministic=deterministic)
 
-        cardinal_graph = cardinal.graph
+        # Initialize phonetic rules for non-deterministic alternatives
+        if not deterministic:
+            self.phonetic_rules = VietnamesePhoneticRules()
+
+        # Use enhanced cardinal graph for non-deterministic mode
+        if deterministic:
+            cardinal_graph = cardinal.graph
+        else:
+            cardinal_graph = self._create_enhanced_cardinal_graph(cardinal.graph)
 
         # Load minimal measurement files (massive redundancy removed via subfst)
         measurements_path = get_abs_path("data/measure/measurements_minimal.tsv")
@@ -83,10 +92,23 @@ class MeasureFst(GraphFst):
         graph_standalone_units = graph_base_units
 
         # Combine all unit mappings
-        graph_unit = graph_metric_units | graph_special_units | graph_standalone_units
+        base_graph_unit = graph_metric_units | graph_special_units | graph_standalone_units
+        
+        # Add enhanced unit alternatives for non-deterministic mode
+        graph_unit = base_graph_unit
 
-        # Add compound unit support (unit/unit patterns like km/h)
-        graph_unit_compound = pynini.cross("/", " trên ") + pynutil.insert(NEMO_SPACE) + graph_unit
+        # Add compound unit support with alternatives (unit/unit patterns like km/h)
+        if not deterministic:
+            # Use enhanced compound alternatives: "trên", "một", "mỗi"
+            graph_unit_compound = self._create_compound_unit_alternatives(graph_unit)
+        else:
+            # Standard "trên" only
+            graph_unit_compound = (
+                graph_unit +
+                pynini.cross("/", " trên ") +
+                pynutil.insert(NEMO_SPACE) +
+                graph_unit
+            )
 
         optional_graph_unit_compound = pynini.closure(
             pynutil.insert(NEMO_SPACE) + graph_unit_compound,
@@ -151,3 +173,63 @@ class MeasureFst(GraphFst):
 
         final_graph = self.add_tokens(final_graph)
         self.fst = final_graph.optimize()
+
+    def _create_enhanced_cardinal_graph(self, base_cardinal_graph):
+        """
+        Create enhanced cardinal graph with phonetic alternatives for non-deterministic mode.
+        For measures, common numbers like weights, distances need alternatives.
+        """
+        alternatives = []
+        
+        # Add base cardinal graph
+        alternatives.append(base_cardinal_graph)
+        
+        # Add phonetic alternatives for common measurement numbers
+        for num in range(1, 1001):  # Common measurement ranges 1-1000
+            num_str = str(num)
+            phonetic_alts = self.phonetic_rules.generate_alternatives(num_str, "general")
+            
+            for alt in phonetic_alts:
+                if alt != num_str:  # Don't duplicate base form
+                    alternatives.append(pynini.cross(num_str, alt))
+        
+        return pynini.union(*alternatives)
+
+    def _create_compound_unit_alternatives(self, graph_unit):
+        """
+        Create compound unit alternatives for non-deterministic mode.
+        Handle patterns like km/h with different readings.
+        """
+        alternatives = []
+        
+        # Alternative 1: "trên" (standard)
+        # km/h -> "ki lô mét trên giờ"
+        compound_with_tren = (
+            graph_unit +
+            pynini.cross("/", " trên ") +
+            pynutil.insert(NEMO_SPACE) +
+            graph_unit
+        )
+        alternatives.append(compound_with_tren)
+        
+        # Alternative 2: "một"
+        # km/h -> "ki lô mét một giờ"
+        compound_with_mot = (
+            graph_unit +
+            pynini.cross("/", " một ") +
+            pynutil.insert(NEMO_SPACE) +
+            graph_unit
+        )
+        alternatives.append(compound_with_mot)
+        
+        # Alternative 3: "mỗi"
+        # km/h -> "ki lô mét mỗi giờ"
+        compound_with_moi = (
+            graph_unit +
+            pynini.cross("/", " mỗi ") +
+            pynutil.insert(NEMO_SPACE) +
+            graph_unit
+        )
+        alternatives.append(compound_with_moi)
+        
+        return pynini.union(*alternatives)

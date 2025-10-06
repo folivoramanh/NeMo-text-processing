@@ -62,19 +62,42 @@ class MoneyFst(GraphFst):
         graph_prefixes = pynini.string_file(per_unit_prefixes_path)
         graph_bases = pynini.string_file(per_unit_bases_path)
 
-        # Build metric combinations: "/kg" -> "một ki lô gam"
+        # Build compound unit alternatives for non-deterministic mode
         slash = pynutil.delete("/")
-        one_space = pynutil.insert("một ")
         space = pynutil.insert(NEMO_SPACE)
-
-        graph_metric_per_units = slash + one_space + graph_prefixes + space + graph_bases
-        graph_standalone_per_units = slash + one_space + graph_bases
-
+        
         # Load non-metric per_unit entries
         graph_non_metric_per_units = pynini.string_file(per_unit_non_metric_path)
-
-        # Combine all per_unit mappings
-        per_unit_graph = graph_metric_per_units | graph_standalone_per_units | graph_non_metric_per_units
+        
+        if not deterministic:
+            # Alternative 1: "một" (standard)
+            one_connector = pynutil.insert("một ")
+            graph_metric_per_units_mot = slash + one_connector + graph_prefixes + space + graph_bases
+            graph_standalone_per_units_mot = slash + one_connector + graph_bases
+            
+            # Alternative 2: "mỗi" 
+            moi_connector = pynutil.insert("mỗi ")
+            graph_metric_per_units_moi = slash + moi_connector + graph_prefixes + space + graph_bases
+            graph_standalone_per_units_moi = slash + moi_connector + graph_bases
+            
+            # Alternative 3: "trên"
+            tren_connector = pynutil.insert("trên ")
+            graph_metric_per_units_tren = slash + tren_connector + graph_prefixes + space + graph_bases
+            graph_standalone_per_units_tren = slash + tren_connector + graph_bases
+            
+            # Combine all compound alternatives
+            per_unit_graph = (
+                graph_metric_per_units_mot | graph_standalone_per_units_mot |
+                graph_metric_per_units_moi | graph_standalone_per_units_moi |
+                graph_metric_per_units_tren | graph_standalone_per_units_tren |
+                graph_non_metric_per_units
+            )
+        else:
+            # Deterministic mode: only "một"
+            one_connector = pynutil.insert("một ")
+            graph_metric_per_units = slash + one_connector + graph_prefixes + space + graph_bases
+            graph_standalone_per_units = slash + one_connector + graph_bases
+            per_unit_graph = graph_metric_per_units | graph_standalone_per_units | graph_non_metric_per_units
 
         # Basic components - enhanced for non-deterministic mode
         if deterministic:
@@ -114,9 +137,8 @@ class MoneyFst(GraphFst):
             decimal_unit_patterns = self._create_decimal_unit_alternatives(currency_major_labels, currency_minor_map)
             all_patterns.append(decimal_unit_patterns)
             
-            # TODO: Fix flexible currency patterns - currently causing $10 to fail
-            # flexible_patterns = self._create_flexible_currency_patterns(currency_major_labels, currency_minor_map)
-            # all_patterns.append(flexible_patterns)
+            flexible_patterns = self._create_flexible_currency_patterns(currency_major_labels, currency_minor_map)
+            all_patterns.append(flexible_patterns)
 
         # Original patterns (for deterministic mode or as fallback)
         # 1. Symbol-based patterns
@@ -411,7 +433,7 @@ class MoneyFst(GraphFst):
         
         return pynini.union(*alternatives)
 
-    def _create_decimal_unit_alternatives(self, currency_major_labels, currency_minor_map):
+    def _create_decimal_unit_alternatives(self, currency_major_labels, currency_minor_map, name = "money"):
         """
         Create decimal unit reading alternatives:
         10,5$ -> "mười phẩy năm đô la" OR "mười đô la năm mười xu"
@@ -433,34 +455,64 @@ class MoneyFst(GraphFst):
             
             # Alternative 1: "mười phẩy năm đô la" (decimal reading)
             decimal_reading = (
+                pynutil.insert(name + " { ") +
                 integer_part +
-                pynini.cross(NEMO_COMMA, ' phẩy ') +
-                fractional_part +
+                pynini.cross(NEMO_COMMA, ' ') +
+                pynutil.insert('fractional_part: "phẩy ') +
+                self._get_cardinal_alternatives() +
+                pynutil.insert('" ') +
                 pynutil.delete(symbol) +
-                insert_space + maj_tag
+                maj_tag +
+                pynutil.insert(" }")
             )
             alternatives.append(decimal_reading)
             
             # Alternative 2: "mười đô la năm mười xu" (major + minor reading)
-            # Convert fractional part to minor unit (multiply by 10 for cents)
+            # For fractional like 0.5 -> 50, 0.05 -> 5
             minor_reading = (
+                pynutil.insert(name + " { ") +
                 integer_part +
-                insert_space + maj_tag +
-                pynini.cross(NEMO_COMMA, NEMO_SPACE) +
-                self._convert_fractional_to_minor(fractional_part) +
-                insert_space + min_tag +
+                maj_tag +
+                pynini.cross(NEMO_COMMA, ' ') +
+                pynutil.insert('integer_part: "') +
+                self._convert_fractional_to_minor() +
+                pynutil.insert('" ') +
                 pynutil.delete(symbol) +
-                preserve_order
+                min_tag +
+                preserve_order +
+                pynutil.insert(" }")
             )
             alternatives.append(minor_reading)
         
         return pynini.union(*alternatives) if alternatives else pynini.accep("")
 
-    def _convert_fractional_to_minor(self, fractional_part):
+    def _convert_fractional_to_minor(self):
         """
         Convert fractional part to minor currency units.
         E.g., 0.5 -> 50 (cents), 0.05 -> 5 (cents)
+        For Vietnamese: 1-9 fractional digits -> multiply by 10
         """
-        # For now, simple approach - multiply by 10 and use cardinal alternatives
-        # This is a simplified implementation
-        return fractional_part  # TODO: Implement proper conversion
+        # Single digit after comma: 5 -> 50 (năm mười)
+        single_digit = self._get_cardinal_alternatives() + pynutil.insert("0")
+        
+        # Two digits after comma: 05 -> 5, 50 -> 50
+        two_digits = self._get_cardinal_alternatives() + self._get_cardinal_alternatives()
+        
+        # Create alternatives for different fractional patterns
+        alternatives = []
+        
+        # Pattern 1: single digit (5 -> 50)
+        single_pattern = pynini.compose(
+            pynini.closure(NEMO_DIGIT, 1, 1),  # Single digit
+            single_digit
+        )
+        alternatives.append(single_pattern)
+        
+        # Pattern 2: two digits (05 -> 5, 50 -> 50)  
+        two_pattern = pynini.compose(
+            pynini.closure(NEMO_DIGIT, 2, 2),  # Two digits
+            two_digits
+        )
+        alternatives.append(two_pattern)
+        
+        return pynini.union(*alternatives)

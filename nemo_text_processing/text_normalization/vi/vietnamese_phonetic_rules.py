@@ -33,6 +33,7 @@ class VietnamesePhoneticRules:
         self.digit_alternatives = self._load_digit_special()
         
         # Connector words for different contexts
+        # Fixed: "lẻ/linh" only appear once, to replace zero positions
         self.connectors = {
             "zero_after_hundred": ["lẻ", "không", "linh"],
             "magnitude_separators": ["nghìn", "ngàn"],  # thousand alternatives
@@ -345,7 +346,8 @@ class VietnamesePhoneticRules:
                 digit = int(digit_char)
                 if digit == 0:
                     # Special handling for zero in year context
-                    zero_alts = ["không", "lẻ", "linh"]  # Common zero pronunciations
+                    # Use only "không" to avoid excessive combinations
+                    zero_alts = ["không"]  # Simplified to reduce alternatives
                     digit_alternatives.append(zero_alts)
                 else:
                     digit_alts = self._get_digit_alternatives_in_context(digit, "general")
@@ -497,7 +499,14 @@ class VietnamesePhoneticRules:
         return alternatives
 
     def _get_digit_alternatives_in_context(self, digit: int, context: str) -> List[str]:
-        """Get digit alternatives based on context using TSV data"""
+        """
+        Get digit alternatives based on context using TSV data
+        
+        Rules:
+        - "mốt": Only at end, and previous digit is not 0 or 1
+        - "lăm": Only at end, and previous digit is not 0
+        - No "x mười" patterns (hai mười, ba mười, etc.)
+        """
         digit_str = str(digit)
         alternatives = []
         
@@ -505,21 +514,39 @@ class VietnamesePhoneticRules:
         if digit_str in self.base_digits:
             alternatives.append(self.base_digits[digit_str])
         
-        # Add enhanced alternatives for specific digits
-        if digit_str in self.digit_alternatives:
-            alternatives.extend(self.digit_alternatives[digit_str])
-        
-        # Context-specific handling
-        if context == "after_hundred" and digit_str == "1":
-            alternatives = ["một", "mốt"]  # Both valid after hundred
+        # Context-specific handling with proper Vietnamese rules
+        if context == "after_hundred":
+            if digit_str == "1":
+                # After hundred: both "một" and "mốt" are valid
+                # E.g., "một trăm lẻ một" or "một trăm lẻ mốt"
+                alternatives = ["một", "mốt"]
+            elif digit_str == "5":
+                # After hundred: both "năm" and "lăm" are valid  
+                # E.g., "một trăm lẻ năm" or "một trăm lẻ lăm"
+                alternatives = ["năm", "lăm"]
+            else:
+                # Other digits: use base form + alternatives from TSV
+                if digit_str in self.digit_alternatives:
+                    alternatives.extend(self.digit_alternatives[digit_str])
+                    
         elif context == "after_tens":
             if digit_str == "1":
-                alternatives = ["mốt"]  # Only mốt after tens
+                # After tens: only "mốt" (never "một")
+                # E.g., "hai mười mốt", "ba mười mốt"
+                alternatives = ["mốt"]
             elif digit_str == "5":
-                alternatives = ["lăm"]  # Only lăm after tens
-            elif digit_str in self.digit_alternatives:
-                alternatives = self.digit_alternatives[digit_str]
-        
+                # After tens: only "lăm" (never "năm")
+                # E.g., "hai mười lăm", "ba mười lăm"  
+                alternatives = ["lăm"]
+            else:
+                # Other digits: use base form only (no special alternatives after tens)
+                alternatives = [self.base_digits.get(digit_str, digit_str)]
+                
+        elif context == "general":
+            # General context: use base + TSV alternatives
+            if digit_str in self.digit_alternatives:
+                alternatives.extend(self.digit_alternatives[digit_str])
+                
         # Remove duplicates while preserving order
         return self._remove_duplicates(alternatives) if alternatives else [digit_str]
 
@@ -533,11 +560,10 @@ class VietnamesePhoneticRules:
             alternatives.append(self.base_ties[tens_str])
         
         # Add colloquial alternatives for specific digits
+        # Note: Vietnamese doesn't have "hai mười", "ba mười", "bốn mười" formats
+        # These are incorrect patterns that should be removed
         colloquial_map = {
-            "2": "hai mười",
-            "3": "ba mười", 
-            "4": "tư mười",
-            "5": "lăm mười"
+            # Removed all "x mười" patterns - these don't exist in Vietnamese
         }
         
         if tens_str in colloquial_map:
