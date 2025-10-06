@@ -94,7 +94,7 @@ class MoneyFst(GraphFst):
 
         all_patterns = []
 
-        # 1. Symbol-based patterns
+        # 1. Symbol-based patterns 
         symbol_patterns = []
         reverse_symbol_patterns = []
         minor_only_patterns = []
@@ -102,22 +102,21 @@ class MoneyFst(GraphFst):
         for symbol, major_name in currency_major_labels:
             maj_tag = pynutil.insert(f' currency_maj: "{major_name}"')
 
-            # Simple integer pattern: 10$ -> mười đô la
+            # Forward pattern: 10$ or 10US$ -> mười đô la 
             simple_pattern = integer_part + pynutil.delete(symbol) + insert_space + maj_tag
             symbol_patterns.append(simple_pattern)
             
-            # Reverse pattern: $10 -> mười đô la (symbol before number)
-            if len(symbol) == 1 and not symbol.isalpha():
-                symbol_fst = pynini.accep(symbol)
-                reverse_pattern = pynutil.delete(symbol_fst) + integer_part + insert_space + maj_tag
-                reverse_symbol_patterns.append(reverse_pattern)
+            # Reverse pattern: $10 or US$10 -> mười đô la (symbol before number)
+            # Apply to all symbols, not just single character ones
+            reverse_pattern = pynutil.delete(symbol) + integer_part + insert_space + maj_tag
+            reverse_symbol_patterns.append(reverse_pattern)
 
             # Patterns with minor currency (cents/xu)
             if symbol in currency_minor_map:
                 minor_name = currency_minor_map[symbol]
                 min_tag = pynutil.insert(f' currency_min: "{minor_name}"')
 
-                # Minor-only pattern: 0,5$ -> năm mươi xu (highest priority)
+                # Minor-only pattern: 0,5$ or 0,5US$ -> năm mươi xu (highest priority)
                 minor_only = (
                     pynutil.delete("0")
                     + pynutil.delete(NEMO_COMMA)
@@ -128,8 +127,20 @@ class MoneyFst(GraphFst):
                     + preserve_order
                 )
                 minor_only_patterns.append(minor_only)
+                
+                # Reverse minor-only pattern: $0,5 or US$0,5 -> năm mươi xu
+                reverse_minor_only = (
+                    pynutil.delete(symbol)
+                    + pynutil.delete("0")
+                    + pynutil.delete(NEMO_COMMA)
+                    + fractional_part
+                    + insert_space
+                    + min_tag
+                    + preserve_order
+                )
+                minor_only_patterns.append(reverse_minor_only)
 
-                # Major + minor pattern: 10,5$ -> mười đô la năm mươi xu
+                # Major + minor pattern: 10,5$ or 10,5US$ -> mười đô la năm mươi xu
                 major_minor = (
                     integer_part
                     + insert_space
@@ -143,23 +154,20 @@ class MoneyFst(GraphFst):
                 )
                 symbol_patterns.append(major_minor)
                 
-                # Reverse major + minor pattern: $10,5 -> mười đô la năm mươi xu
-                # Only for actual symbols (not words)
-                if len(symbol) == 1 and not symbol.isalpha():
-                    # Use pynini.accep for literal symbol matching
-                    symbol_fst = pynini.accep(symbol)
-                    reverse_major_minor = (
-                        pynutil.delete(symbol_fst)
-                        + integer_part
-                        + insert_space
-                        + maj_tag
-                        + pynini.cross(NEMO_COMMA, NEMO_SPACE)
-                        + fractional_part
-                        + insert_space
-                        + min_tag
-                        + preserve_order
-                    )
-                    reverse_symbol_patterns.append(reverse_major_minor)
+                # Reverse major + minor pattern: $10,5 or US$10,5 -> mười đô la năm mươi xu
+                # Apply to all symbols, not just single character ones
+                reverse_major_minor = (
+                    pynutil.delete(symbol)
+                    + integer_part
+                    + insert_space
+                    + maj_tag
+                    + pynini.cross(NEMO_COMMA, NEMO_SPACE)
+                    + fractional_part
+                    + insert_space
+                    + min_tag
+                    + preserve_order
+                )
+                reverse_symbol_patterns.append(reverse_major_minor)
 
         # 2. Word-based patterns
         word_patterns = []
@@ -201,22 +209,18 @@ class MoneyFst(GraphFst):
         )
         word_patterns.append(simple_word_pattern)
 
-        # Combine patterns with priorities
-        # Reverse symbol patterns get highest priority (for $10 patterns)
-        if reverse_symbol_patterns:
-            all_patterns.append(pynutil.add_weight(pynini.union(*reverse_symbol_patterns), -0.0002))
-            
-        # Minor-only patterns get high priority (negative weight)
+        # Combine patterns without weights
         if minor_only_patterns:
-            all_patterns.append(pynutil.add_weight(pynini.union(*minor_only_patterns), -0.0001))
+            all_patterns.append(pynini.union(*minor_only_patterns))
+            
+        if reverse_symbol_patterns:
+            all_patterns.append(pynini.union(*reverse_symbol_patterns))
 
-        # Symbol patterns get normal priority
         if symbol_patterns:
             all_patterns.append(pynini.union(*symbol_patterns))
 
-        # Word patterns get lowest priority
         if word_patterns:
-            all_patterns.append(pynutil.add_weight(pynini.union(*word_patterns), 0.1))
+            all_patterns.append(pynini.union(*word_patterns))
 
         # Final graph with optional per-unit support
         final_graph = pynini.union(*all_patterns)
