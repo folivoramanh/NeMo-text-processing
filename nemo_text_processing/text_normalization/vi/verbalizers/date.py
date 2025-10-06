@@ -52,10 +52,11 @@ class DateFst(GraphFst):
             month_with_prefix = month_expr  
             year_with_prefix = year_expr
         else:
-            # Deterministic mode - add prefixes as before
-            day_with_prefix = pynutil.insert("ngày ") + day_expr
-            month_with_prefix = pynutil.insert("tháng ") + month_expr
-            year_with_prefix = pynutil.insert("năm ") + year_expr
+            # Deterministic mode - DON'T add prefixes automatically to avoid duplicates
+            # Let the tagger handle prefixes to maintain consistency
+            day_with_prefix = day_expr
+            month_with_prefix = month_expr
+            year_with_prefix = year_expr
 
         ordinal_with_prefix = pynutil.insert("năm thứ ") + ordinal_expr
 

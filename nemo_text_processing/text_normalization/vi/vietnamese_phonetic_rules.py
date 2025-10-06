@@ -503,8 +503,8 @@ class VietnamesePhoneticRules:
         Get digit alternatives based on context using TSV data
         
         Rules:
-        - "mốt": Only at end, and previous digit is not 0 or 1
-        - "lăm": Only at end, and previous digit is not 0
+        - "mốt": Only at end of tens (after_tens), NOT for standalone 1/01/11
+        - "lăm": Only at end of tens (after_tens), NOT for standalone 5/05
         - No "x mười" patterns (hai mười, ba mười, etc.)
         """
         digit_str = str(digit)
@@ -516,20 +516,18 @@ class VietnamesePhoneticRules:
         
         # Context-specific handling with proper Vietnamese rules
         if context == "after_hundred":
-            if digit_str == "1":
-                # After hundred: both "một" and "mốt" are valid
-                # E.g., "một trăm lẻ một" or "một trăm lẻ mốt"
-                alternatives = ["một", "mốt"]
-            elif digit_str == "5":
-                # After hundred: both "năm" and "lăm" are valid  
-                # E.g., "một trăm lẻ năm" or "một trăm lẻ lăm"
-                alternatives = ["năm", "lăm"]
-            else:
-                # Other digits: use base form + alternatives from TSV
-                if digit_str in self.digit_alternatives:
-                    alternatives.extend(self.digit_alternatives[digit_str])
+            # After hundred: use base forms only (no mốt/lăm)
+            if digit_str in self.digit_alternatives:
+                alts = self.digit_alternatives[digit_str].copy()
+                # Remove mốt/lăm from after hundred context
+                if digit_str == "1" and "mốt" in alts:
+                    alts.remove("mốt")
+                if digit_str == "5" and "lăm" in alts:
+                    alts.remove("lăm")
+                alternatives.extend(alts)
                     
         elif context == "after_tens":
+            # After tens: use special forms for 1 and 5
             if digit_str == "1":
                 # After tens: only "mốt" (never "một")
                 # E.g., "hai mười mốt", "ba mười mốt"
@@ -539,13 +537,20 @@ class VietnamesePhoneticRules:
                 # E.g., "hai mười lăm", "ba mười lăm"  
                 alternatives = ["lăm"]
             else:
-                # Other digits: use base form only (no special alternatives after tens)
+                # Other digits: use base form only
                 alternatives = [self.base_digits.get(digit_str, digit_str)]
                 
         elif context == "general":
             # General context: use base + TSV alternatives
+            # But exclude "mốt" and "lăm" for standalone numbers
             if digit_str in self.digit_alternatives:
-                alternatives.extend(self.digit_alternatives[digit_str])
+                alts = self.digit_alternatives[digit_str].copy()
+                # Remove mốt/lăm from standalone numbers
+                if digit_str == "1" and "mốt" in alts:
+                    alts.remove("mốt")
+                if digit_str == "5" and "lăm" in alts:
+                    alts.remove("lăm")
+                alternatives.extend(alts)
                 
         # Remove duplicates while preserving order
         return self._remove_duplicates(alternatives) if alternatives else [digit_str]
@@ -592,7 +597,11 @@ class VietnamesePhoneticRules:
         if teen_str in self.base_teens:
             alternatives.append(self.base_teens[teen_str])
         
-        # Generate additional alternatives for specific teens
+        # Special exceptions: 11 should only be "mười một" (no "mười mốt")
+        if num == 11:
+            return ["mười một"]
+        
+        # Generate additional alternatives for specific teens (except 11)
         ones_digit = num % 10
         if ones_digit in [1, 4, 5]:  # Digits with alternatives
             base_forms = ["mười"]
@@ -612,32 +621,29 @@ class VietnamesePhoneticRules:
         return alternatives if alternatives else [teen_str]
 
     def generate_date_day_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
-        """Generate alternatives for date days with Vietnamese prefixes"""
-        alternatives = []
-        
-        # Get basic number alternatives
+        """Generate alternatives for date days - NO automatic prefixes to avoid duplicates"""
+        # Always return base alternatives without any automatic prefix
+        # Prefixes should only come from input patterns, not generated here
         base_alternatives = self.generate_alternatives(number_str, "general")
         
         if include_prefix:
-            # Add prefix variations: ngày, mùng, mồng
-            day_prefixes = ["ngày", "mùng", "mồng"]
-            
-            for prefix in day_prefixes:
-                for base_alt in base_alternatives:
-                    alternatives.append(f"{prefix} {base_alt}")
-            
-            # Add compound prefixes for days 1-10 (ngày mùng, ngày mồng)
             day_num = int(number_str)
+            
+            # Only "mùng", "mồng" prefixes for days 1-10, but ONLY if explicitly requested
+            # This is used by prefix-preserving patterns, not standard patterns
             if 1 <= day_num <= 10:
-                compound_prefixes = ["ngày mùng", "ngày mồng"]
-                for compound_prefix in compound_prefixes:
+                day_prefixes_small = ["mùng", "mồng"]
+                prefixed_alternatives = []
+                for prefix in day_prefixes_small:
                     for base_alt in base_alternatives:
-                        alternatives.append(f"{compound_prefix} {base_alt}")
-        else:
-            # No prefix, just return base alternatives
-            alternatives.extend(base_alternatives)
+                        prefixed_alternatives.append(f"{prefix} {base_alt}")
+                
+                # Return ONLY prefixed alternatives when include_prefix=True
+                # This prevents mixing prefixed and non-prefixed in same FST
+                return self._remove_duplicates(prefixed_alternatives)
         
-        return self._remove_duplicates(alternatives)
+        # For include_prefix=False or days > 10, return base alternatives only
+        return self._remove_duplicates(base_alternatives)
 
     def generate_date_month_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
         """Generate alternatives for date months with Vietnamese prefixes"""

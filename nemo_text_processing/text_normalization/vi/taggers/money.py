@@ -102,8 +102,10 @@ class MoneyFst(GraphFst):
         # Basic components - enhanced for non-deterministic mode
         if deterministic:
             cardinal_graph = cardinal.graph
+            self.cardinal_alternatives = pynini.closure(pynini.union(*"0123456789"), 1)
         else:
             cardinal_graph = self._create_enhanced_cardinal_graph(cardinal.graph)
+            self.cardinal_alternatives = self._create_enhanced_cardinal_graph(pynini.closure(pynini.union(*"0123456789"), 1))
             
         currency_major_graph = pynini.string_map(currency_major_labels)
         currency_minor_map = dict(currency_minor_labels)
@@ -382,27 +384,14 @@ class MoneyFst(GraphFst):
                 
                 # Add decimal patterns for each position
                 for base_pattern in [pattern1, pattern2, pattern3, pattern4]:
-                    # Create decimal version: 10,5$ -> "mười đô la năm mười xu" 
-                    decimal_pattern = self._add_decimal_alternatives(base_pattern, maj_tag, min_tag)
-                    all_patterns.append(decimal_pattern)
+                    # Base patterns already handle decimal cases
+                    all_patterns.append(base_pattern)
         
         return pynini.union(*all_patterns)
 
     def _get_cardinal_alternatives(self):
         """Get cardinal graph with alternatives."""
-        if hasattr(self, 'phonetic_rules'):
-            return self._create_enhanced_cardinal_graph(pynini.closure(pynini.union(*"0123456789"), 1))
-        else:
-            return pynini.closure(pynini.union(*"0123456789"), 1)
-
-    def _add_decimal_alternatives(self, base_pattern, maj_tag, min_tag):
-        """
-        Add decimal reading alternatives:
-        10,5$ -> "mười phẩy năm đô la" OR "mười đô la năm mười xu"
-        """
-        # This is complex - for now, return base pattern
-        # TODO: Implement full decimal alternatives
-        return base_pattern
+        return self.cardinal_alternatives
 
     def _create_fraction_alternatives(self):
         """
@@ -468,15 +457,13 @@ class MoneyFst(GraphFst):
             alternatives.append(decimal_reading)
             
             # Alternative 2: "mười đô la năm mười xu" (major + minor reading)
-            # For fractional like 0.5 -> 50, 0.05 -> 5
+            # Use existing fractional_conversion logic instead of custom method
             minor_reading = (
                 pynutil.insert(name + " { ") +
                 integer_part +
                 maj_tag +
                 pynini.cross(NEMO_COMMA, ' ') +
-                pynutil.insert('integer_part: "') +
-                self._convert_fractional_to_minor() +
-                pynutil.insert('" ') +
+                fractional_part +  # Use existing fractional_part logic
                 pynutil.delete(symbol) +
                 min_tag +
                 preserve_order +
@@ -485,34 +472,3 @@ class MoneyFst(GraphFst):
             alternatives.append(minor_reading)
         
         return pynini.union(*alternatives) if alternatives else pynini.accep("")
-
-    def _convert_fractional_to_minor(self):
-        """
-        Convert fractional part to minor currency units.
-        E.g., 0.5 -> 50 (cents), 0.05 -> 5 (cents)
-        For Vietnamese: 1-9 fractional digits -> multiply by 10
-        """
-        # Single digit after comma: 5 -> 50 (năm mười)
-        single_digit = self._get_cardinal_alternatives() + pynutil.insert("0")
-        
-        # Two digits after comma: 05 -> 5, 50 -> 50
-        two_digits = self._get_cardinal_alternatives() + self._get_cardinal_alternatives()
-        
-        # Create alternatives for different fractional patterns
-        alternatives = []
-        
-        # Pattern 1: single digit (5 -> 50)
-        single_pattern = pynini.compose(
-            pynini.closure(NEMO_DIGIT, 1, 1),  # Single digit
-            single_digit
-        )
-        alternatives.append(single_pattern)
-        
-        # Pattern 2: two digits (05 -> 5, 50 -> 50)  
-        two_pattern = pynini.compose(
-            pynini.closure(NEMO_DIGIT, 2, 2),  # Two digits
-            two_digits
-        )
-        alternatives.append(two_pattern)
-        
-        return pynini.union(*alternatives)

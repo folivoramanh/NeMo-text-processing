@@ -71,8 +71,11 @@ class MeasureFst(GraphFst):
         # Use enhanced cardinal graph for non-deterministic mode
         if deterministic:
             cardinal_graph = cardinal.graph
+            self.enhanced_cardinal = cardinal.graph
         else:
-            cardinal_graph = self._create_enhanced_cardinal_graph(cardinal.graph)
+            # Store enhanced cardinal for reuse instead of recreating
+            self.enhanced_cardinal = self._create_enhanced_cardinal_graph(cardinal.graph)
+            cardinal_graph = self.enhanced_cardinal
 
         # Load minimal measurement files (massive redundancy removed via subfst)
         measurements_path = get_abs_path("data/measure/measurements_minimal.tsv")
@@ -177,15 +180,18 @@ class MeasureFst(GraphFst):
     def _create_enhanced_cardinal_graph(self, base_cardinal_graph):
         """
         Create enhanced cardinal graph with phonetic alternatives for non-deterministic mode.
-        For measures, common numbers like weights, distances need alternatives.
+        For measures, use phonetic rules more efficiently by leveraging existing cardinal logic.
         """
         alternatives = []
         
         # Add base cardinal graph
         alternatives.append(base_cardinal_graph)
         
-        # Add phonetic alternatives for common measurement numbers
-        for num in range(1, 1001):  # Common measurement ranges 1-1000
+        # Add phonetic alternatives for common measurement numbers (optimized range)
+        # Focus on numbers commonly used in measurements: 1-100, key round numbers
+        common_numbers = list(range(1, 101)) + [200, 500, 1000]
+        
+        for num in common_numbers:
             num_str = str(num)
             phonetic_alts = self.phonetic_rules.generate_alternatives(num_str, "general")
             

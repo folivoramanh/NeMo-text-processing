@@ -44,7 +44,12 @@ class DateFst(GraphFst):
         ORDINAL_YEAR_WORD = "năm thứ"
 
         # Prebuilt patterns for common usage
-        day_prefix = pynini.accep(DAY_WORD + NEMO_SPACE)
+        # Expand day_prefix to include all possible day prefixes
+        day_prefix = pynini.union(
+            pynini.accep("ngày "),
+            pynini.accep("mùng "),
+            pynini.accep("mồng ")
+        )
         month_prefix = pynini.accep(MONTH_WORD + NEMO_SPACE)
         year_prefix = pynini.accep(YEAR_WORD + NEMO_SPACE)
         ordinal_year_prefix = pynini.accep(ORDINAL_YEAR_WORD + NEMO_SPACE)
@@ -87,6 +92,16 @@ class DateFst(GraphFst):
             month_part = pynutil.insert("month: \"") + month_convert + pynutil.insert("\" ")
             year_part = pynutil.insert("year: \"") + year_convert + pynutil.insert("\"")
             month_final = pynutil.insert("month: \"") + month_convert + pynutil.insert("\"")
+            
+            # Create converters without prefixes for cases where input already has prefix
+            day_convert_no_prefix = self._create_enhanced_day_converter_no_prefix(day_mappings)
+            month_convert_no_prefix = self._create_enhanced_month_converter_no_prefix(month_mappings)
+            year_convert_no_prefix = self._create_enhanced_year_converter_no_prefix(year_digit, cardinal.graph)
+            
+            day_part_no_prefix = pynutil.insert("day: \"") + day_convert_no_prefix + pynutil.insert("\" ")
+            month_part_no_prefix = pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\" ")
+            year_part_no_prefix = pynutil.insert("year: \"") + year_convert_no_prefix + pynutil.insert("\"")
+            month_final_no_prefix = pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\"")
         else:
             # Standard deterministic mode
             day_part = pynutil.insert("day: \"") + day_convert + pynutil.insert("\" ")
@@ -94,6 +109,14 @@ class DateFst(GraphFst):
             year_part = pynutil.insert("year: \"") + year_convert + pynutil.insert("\"")
             month_final = pynutil.insert("month: \"") + month_convert + pynutil.insert("\"")
             
+            # No-prefix versions same as regular for deterministic mode
+            day_part_no_prefix = day_part
+            month_part_no_prefix = month_part  
+            year_part_no_prefix = year_part
+            month_final_no_prefix = month_final
+            day_convert_no_prefix = day_convert
+            month_convert_no_prefix = month_convert
+            year_convert_no_prefix = year_convert
         era_part = pynutil.insert("era: \"") + era_convert + pynutil.insert("\"")
 
         patterns = []
@@ -101,12 +124,13 @@ class DateFst(GraphFst):
         # DD/MM/YYYY format (Vietnamese standard)
         date_sep = day_part + pynutil.delete(separator) + month_part + pynutil.delete(separator) + year_part
         patterns.append(pynini.compose(day_digit + separator + month_digit + separator + year_digit, date_sep))
-        patterns.append(
-            pynini.compose(
-                day_prefix + day_digit + separator + month_digit + separator + year_digit,
-                delete_day_prefix + date_sep,
-            )
+        
+        # Higher priority for patterns that preserve input prefixes
+        prefix_preserving_pattern = pynini.compose(
+            day_prefix + day_digit + separator + month_digit + separator + year_digit,
+            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("year: \"") + year_convert_no_prefix + pynutil.insert("\""),
         )
+        patterns.append(pynutil.add_weight(prefix_preserving_pattern, -0.1))  # Higher priority
 
         # YYYY/MM/DD format (ISO standard) - output in Vietnamese order
         iso_year_part = pynutil.insert("year: \"") + year_convert + pynutil.insert("\" ")
@@ -119,24 +143,20 @@ class DateFst(GraphFst):
         patterns.append(pynini.compose(year_digit + separator + month_digit + separator + day_digit, iso_date_sep))
 
         for sep in [separator, pynini.accep(NEMO_SPACE)]:
-            patterns.append(
-                pynini.compose(
-                    month_prefix + month_digit + sep + year_digit,
-                    delete_month_prefix + month_part + pynutil.delete(sep) + year_part,
-                )
+            month_prefix_pattern = pynini.compose(
+                month_prefix + month_digit + sep + year_digit,
+                pynutil.insert("month: \"") + month_prefix + month_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(sep) + pynutil.insert("year: \"") + year_convert_no_prefix + pynutil.insert("\""),
             )
+            patterns.append(pynutil.add_weight(month_prefix_pattern, -0.1))  # Higher priority
 
-        day_month_sep = day_part + pynutil.delete(separator) + month_final
-        patterns.append(
-            pynini.compose(day_prefix + day_digit + separator + month_digit, delete_day_prefix + day_month_sep)
-        )
+        day_month_prefix_pattern = pynini.compose(day_prefix + day_digit + separator + month_digit, pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\""))
+        patterns.append(pynutil.add_weight(day_month_prefix_pattern, -0.1))  # Higher priority
 
-        patterns.append(
-            pynini.compose(
-                day_prefix + day_digit + pynini.accep(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + month_digit,
-                delete_day_prefix + day_part + pynutil.delete(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + month_final,
-            )
+        day_month_word_prefix_pattern = pynini.compose(
+            day_prefix + day_digit + pynini.accep(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + month_digit,
+            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\""),
         )
+        patterns.append(pynutil.add_weight(day_month_word_prefix_pattern, -0.1))  # Higher priority
 
         patterns.append(
             pynini.compose(
@@ -181,41 +201,37 @@ class DateFst(GraphFst):
         self.fst = self.add_tokens(pynini.union(*patterns))
 
     def _create_enhanced_day_converter(self, base_mappings):
-        """Create enhanced day converter with alternatives including ngày/mùng/mồng prefixes"""
+        """Create enhanced day converter WITHOUT prefixes - used by standard patterns"""
         alternatives = []
         
         # Add base mappings (without prefix) - for backward compatibility
         for k, v in base_mappings:
             alternatives.append(pynini.cross(k, v))
         
-        # Add alternatives with Vietnamese day prefixes using phonetic rules
-        for day in range(1, 32):  # Days 1-31
-            day_str = str(day)
-            # Get alternatives with prefixes (ngày/mùng/mồng)
-            day_alts_with_prefix = self.phonetic_rules.generate_date_day_alternatives(day_str, include_prefix=True)
-            for alt in day_alts_with_prefix:
-                alternatives.append(pynini.cross(day_str, alt))
-                
-        # Add zero-padded versions
-        for day in range(1, 10):
-            day_str = f"0{day}"
-            day_alts_with_prefix = self.phonetic_rules.generate_date_day_alternatives(str(day), include_prefix=True)
-            for alt in day_alts_with_prefix:
-                alternatives.append(pynini.cross(day_str, alt))
+        # Optimize: Generate alternatives for all days at once to reduce redundant calls
+        day_alternatives = {}
         
-        # Also add alternatives without prefixes (for number-only formats)
+        # Generate alternatives for days 1-31 (WITHOUT prefixes only)
         for day in range(1, 32):
             day_str = str(day)
             day_alts_no_prefix = self.phonetic_rules.generate_date_day_alternatives(day_str, include_prefix=False)
-            for alt in day_alts_no_prefix:
+            
+            # Store for reuse
+            day_alternatives[day_str] = day_alts_no_prefix
+        
+        # Add alternatives WITHOUT prefixes to FST
+        for day_str, alts in day_alternatives.items():
+            for alt in alts:
                 alternatives.append(pynini.cross(day_str, alt))
                 
-        # Add zero-padded versions without prefixes
+        # Add zero-padded versions (reuse cached alternatives)
         for day in range(1, 10):
-            day_str = f"0{day}"
-            day_alts_no_prefix = self.phonetic_rules.generate_date_day_alternatives(str(day), include_prefix=False)
-            for alt in day_alts_no_prefix:
-                alternatives.append(pynini.cross(day_str, alt))
+            padded_day_str = f"0{day}"
+            day_str = str(day)
+            if day_str in day_alternatives:
+                # Without prefixes only
+                for alt in day_alternatives[day_str]:
+                    alternatives.append(pynini.cross(padded_day_str, alt))
         
         return pynini.union(*alternatives).optimize() if alternatives else pynini.string_map([(k, v) for k, v in base_mappings])
 
@@ -227,31 +243,146 @@ class DateFst(GraphFst):
         for k, v in base_mappings:
             alternatives.append(pynini.cross(k, v))
         
-        # Add alternatives with Vietnamese month prefixes using phonetic rules
+        # Optimize: Generate alternatives for all months at once
         month_alternatives = {}
-        for month in range(1, 13):  # Months 1-12
+        
+        # Generate alternatives for months 1-12
+        for month in range(1, 13):
             month_str = str(month)
-            # Get alternatives with "tháng" prefix
             month_alts_with_prefix = self.phonetic_rules.generate_date_month_alternatives(month_str, include_prefix=True)
             if len(month_alts_with_prefix) > 0:
                 month_alternatives[month_str] = month_alts_with_prefix
-                
-        # Add zero-padded versions
-        for month in range(1, 10):
-            month_str = f"0{month}"
-            month_alts_with_prefix = self.phonetic_rules.generate_date_month_alternatives(str(month), include_prefix=True)
-            if len(month_alts_with_prefix) > 0:
-                month_alternatives[month_str] = month_alts_with_prefix
         
-        # Create alternative patterns
+        # Add alternatives to FST
         for month_num, alts in month_alternatives.items():
             for alt in alts:
                 alternatives.append(pynini.cross(month_num, alt))
+                
+        # Add zero-padded versions (reuse cached alternatives)
+        for month in range(1, 10):
+            padded_month_str = f"0{month}"
+            month_str = str(month)
+            if month_str in month_alternatives:
+                for alt in month_alternatives[month_str]:
+                    alternatives.append(pynini.cross(padded_month_str, alt))
         
         return pynini.union(*alternatives).optimize() if alternatives else pynini.string_map([(k, v) for k, v in base_mappings])
 
     def _create_enhanced_year_converter(self, year_digit, cardinal_graph):
-        """Create enhanced year converter with alternatives"""
-        # Use the existing cardinal graph which already has alternatives
-        # The cardinal FST already handles number alternatives
-        return pynini.compose(year_digit, cardinal_graph)
+        """Create enhanced year converter with alternatives including năm prefix"""
+        alternatives = []
+        
+        # Add base cardinal composition (without prefix) for backward compatibility
+        base_year_converter = pynini.compose(year_digit, cardinal_graph)
+        alternatives.append(base_year_converter)
+        
+        # Add alternatives with "năm" prefix using phonetic rules
+        if hasattr(self, 'phonetic_rules'):
+            year_alternatives = {}
+            
+            # Generate alternatives for common years (1900-2100)
+            for year in range(1900, 2101):
+                year_str = str(year)
+                year_alts_with_prefix = self.phonetic_rules.generate_date_year_alternatives(year_str, include_prefix=True)
+                if len(year_alts_with_prefix) > 0:
+                    year_alternatives[year_str] = year_alts_with_prefix
+            
+            # Add alternatives to FST
+            for year_num, alts in year_alternatives.items():
+                for alt in alts:
+                    alternatives.append(pynini.cross(year_num, alt))
+        
+        return pynini.union(*alternatives).optimize() if len(alternatives) > 1 else base_year_converter
+
+    def _create_enhanced_day_converter_no_prefix(self, base_mappings):
+        """Create enhanced day converter without prefixes - for cases where input already has prefix"""
+        alternatives = []
+        
+        # Add base mappings (without prefix)
+        for k, v in base_mappings:
+            alternatives.append(pynini.cross(k, v))
+        
+        # Add alternatives without prefixes only
+        if hasattr(self, 'phonetic_rules'):
+            day_alternatives = {}
+            
+            # Generate alternatives for days 1-31 (no prefixes)
+            for day in range(1, 32):
+                day_str = str(day)
+                day_alts_no_prefix = self.phonetic_rules.generate_date_day_alternatives(day_str, include_prefix=False)
+                day_alternatives[day_str] = day_alts_no_prefix
+            
+            # Add alternatives to FST
+            for day_str, alts in day_alternatives.items():
+                for alt in alts:
+                    alternatives.append(pynini.cross(day_str, alt))
+                    
+            # Add zero-padded versions (reuse cached alternatives)
+            for day in range(1, 10):
+                padded_day_str = f"0{day}"
+                day_str = str(day)
+                if day_str in day_alternatives:
+                    for alt in day_alternatives[day_str]:
+                        alternatives.append(pynini.cross(padded_day_str, alt))
+        
+        return pynini.union(*alternatives).optimize() if alternatives else pynini.string_map([(k, v) for k, v in base_mappings])
+
+    def _create_enhanced_month_converter_no_prefix(self, base_mappings):
+        """Create enhanced month converter without prefixes - for cases where input already has prefix"""
+        alternatives = []
+        
+        # Add base mappings (without prefix)
+        for k, v in base_mappings:
+            alternatives.append(pynini.cross(k, v))
+        
+        # Add alternatives without prefixes only
+        if hasattr(self, 'phonetic_rules'):
+            month_alternatives = {}
+            
+            # Generate alternatives for months 1-12 (no prefixes)
+            for month in range(1, 13):
+                month_str = str(month)
+                month_alts_no_prefix = self.phonetic_rules.generate_date_month_alternatives(month_str, include_prefix=False)
+                if len(month_alts_no_prefix) > 0:
+                    month_alternatives[month_str] = month_alts_no_prefix
+            
+            # Add alternatives to FST
+            for month_num, alts in month_alternatives.items():
+                for alt in alts:
+                    alternatives.append(pynini.cross(month_num, alt))
+                    
+            # Add zero-padded versions (reuse cached alternatives)
+            for month in range(1, 10):
+                padded_month_str = f"0{month}"
+                month_str = str(month)
+                if month_str in month_alternatives:
+                    for alt in month_alternatives[month_str]:
+                        alternatives.append(pynini.cross(padded_month_str, alt))
+        
+        return pynini.union(*alternatives).optimize() if alternatives else pynini.string_map([(k, v) for k, v in base_mappings])
+
+    def _create_enhanced_year_converter_no_prefix(self, year_digit, cardinal_graph):
+        """Create enhanced year converter without prefixes - for cases where input already has prefix"""
+        alternatives = []
+        
+        # Add base cardinal composition (without prefix)
+        base_year_converter = pynini.compose(year_digit, cardinal_graph)
+        alternatives.append(base_year_converter)
+        
+        # Add alternatives without "năm" prefix using phonetic rules
+        if hasattr(self, 'phonetic_rules'):
+            year_alternatives = {}
+            
+            # Generate alternatives for common years (1900-2100) without prefix
+            for year in range(1900, 2101):
+                year_str = str(year)
+                year_alts_no_prefix = self.phonetic_rules.generate_date_year_alternatives(year_str, include_prefix=False)
+                if len(year_alts_no_prefix) > 0:
+                    year_alternatives[year_str] = year_alts_no_prefix
+            
+            # Add alternatives to FST
+            for year_num, alts in year_alternatives.items():
+                for alt in alts:
+                    alternatives.append(pynini.cross(year_num, alt))
+        
+        return pynini.union(*alternatives).optimize() if len(alternatives) > 1 else base_year_converter

@@ -266,6 +266,12 @@ class CardinalFst(GraphFst):
                 for alt in alternatives:
                     alt_pairs.append([str(i), alt])
             
+            # Four digits (1000-9999) - for thousands with nghìn/ngàn alternatives
+            for i in range(1000, 10000):
+                alternatives = phonetic_rules.generate_alternatives(str(i), "general")
+                for alt in alternatives:
+                    alt_pairs.append([str(i), alt])
+            
             # Create FST from all alternatives
             if alt_pairs:
                 alt_graph = pynini.string_map(alt_pairs)
