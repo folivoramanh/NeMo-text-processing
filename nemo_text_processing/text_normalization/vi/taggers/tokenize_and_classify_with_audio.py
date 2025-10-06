@@ -28,10 +28,20 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     generator_main,
 )
 from nemo_text_processing.text_normalization.vi.taggers.cardinal import CardinalFst
+from nemo_text_processing.text_normalization.vi.taggers.date import DateFst
+from nemo_text_processing.text_normalization.vi.taggers.decimal import DecimalFst
+from nemo_text_processing.text_normalization.vi.taggers.fraction import FractionFst
+from nemo_text_processing.text_normalization.vi.taggers.money import MoneyFst
+from nemo_text_processing.text_normalization.vi.taggers.ordinal import OrdinalFst
 from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
 from nemo_text_processing.text_normalization.vi.taggers.whitelist import WhiteListFst
 from nemo_text_processing.text_normalization.vi.taggers.word import WordFst
 from nemo_text_processing.text_normalization.vi.verbalizers.cardinal import CardinalFst as VCardinalFst
+from nemo_text_processing.text_normalization.vi.verbalizers.date import DateFst as VDateFst
+from nemo_text_processing.text_normalization.vi.verbalizers.decimal import DecimalFst as VDecimalFst
+from nemo_text_processing.text_normalization.vi.verbalizers.fraction import FractionFst as VFractionFst
+from nemo_text_processing.text_normalization.vi.verbalizers.money import MoneyFst as VMoneyFst
+from nemo_text_processing.text_normalization.vi.verbalizers.ordinal import OrdinalFst as VOrdinalFst
 from nemo_text_processing.utils.logging import logger
 
 
@@ -93,17 +103,72 @@ class ClassifyFst(GraphFst):
             word_graph = WordFst(deterministic=deterministic).fst
             logger.debug(f"word: {time.time() - start_time: .2f}s -- {word_graph.num_states()} nodes")
 
+            start_time = time.time()
+            date = DateFst(cardinal=cardinal, deterministic=deterministic)
+            date_graph = date.fst
+            logger.debug(f"date: {time.time() - start_time: .2f}s -- {date_graph.num_states()} nodes")
+
+            start_time = time.time()
+            decimal = DecimalFst(cardinal=cardinal, deterministic=deterministic)
+            decimal_graph = decimal.fst
+            logger.debug(f"decimal: {time.time() - start_time: .2f}s -- {decimal_graph.num_states()} nodes")
+
+            start_time = time.time()
+            ordinal = OrdinalFst(cardinal=cardinal, deterministic=deterministic)
+            ordinal_graph = ordinal.fst
+            logger.debug(f"ordinal: {time.time() - start_time: .2f}s -- {ordinal_graph.num_states()} nodes")
+
+            start_time = time.time()
+            fraction = FractionFst(cardinal=cardinal, deterministic=deterministic)
+            fraction_graph = fraction.fst
+            logger.debug(f"fraction: {time.time() - start_time: .2f}s -- {fraction_graph.num_states()} nodes")
+
+            start_time = time.time()
+            money = MoneyFst(cardinal=cardinal, decimal=decimal, deterministic=deterministic)
+            money_graph = money.fst
+            logger.debug(f"money: {time.time() - start_time: .2f}s -- {money_graph.num_states()} nodes")
+
             # VERBALIZERS - Compose with taggers like English
             start_time = time.time()
             v_cardinal = VCardinalFst(deterministic=deterministic)
             v_cardinal_graph = v_cardinal.fst
             logger.debug(f"v_cardinal: {time.time() - start_time: .2f}s -- {v_cardinal_graph.num_states()} nodes")
 
+            start_time = time.time()
+            v_date = VDateFst(deterministic=deterministic)
+            v_date_graph = v_date.fst
+            logger.debug(f"v_date: {time.time() - start_time: .2f}s -- {v_date_graph.num_states()} nodes")
+
+            start_time = time.time()
+            v_decimal = VDecimalFst(cardinal=v_cardinal, deterministic=deterministic)
+            v_decimal_graph = v_decimal.fst
+            logger.debug(f"v_decimal: {time.time() - start_time: .2f}s -- {v_decimal_graph.num_states()} nodes")
+
+            start_time = time.time()
+            v_ordinal = VOrdinalFst(deterministic=deterministic)
+            v_ordinal_graph = v_ordinal.fst
+            logger.debug(f"v_ordinal: {time.time() - start_time: .2f}s -- {v_ordinal_graph.num_states()} nodes")
+
+            start_time = time.time()
+            v_fraction = VFractionFst(deterministic=deterministic)
+            v_fraction_graph = v_fraction.fst
+            logger.debug(f"v_fraction: {time.time() - start_time: .2f}s -- {v_fraction_graph.num_states()} nodes")
+
+            start_time = time.time()
+            v_money = VMoneyFst(deterministic=deterministic)
+            v_money_graph = v_money.fst
+            logger.debug(f"v_money: {time.time() - start_time: .2f}s -- {v_money_graph.num_states()} nodes")
+
             # COMPOSE TAGGERS + VERBALIZERS (like English approach)
             start_time = time.time()
             classify_and_verbalize = (
                 pynutil.add_weight(whitelist_graph, 1.01)
                 | pynutil.add_weight(pynini.compose(cardinal_graph, v_cardinal_graph), 1.1)
+                | pynutil.add_weight(pynini.compose(date_graph, v_date_graph), 1.09)
+                | pynutil.add_weight(pynini.compose(decimal_graph, v_decimal_graph), 1.08)
+                | pynutil.add_weight(pynini.compose(ordinal_graph, v_ordinal_graph), 1.07)
+                | pynutil.add_weight(pynini.compose(fraction_graph, v_fraction_graph), 1.06)
+                | pynutil.add_weight(pynini.compose(money_graph, v_money_graph), 1.05)
                 | pynutil.add_weight(word_graph, 100)
             ).optimize()
             logger.debug(f"classify_and_verbalize: {time.time() - start_time: .2f}s -- {classify_and_verbalize.num_states()} nodes")

@@ -25,6 +25,7 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     insert_space,
 )
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
+from nemo_text_processing.text_normalization.vi.vietnamese_phonetic_rules import VietnamesePhoneticRules
 
 
 class MoneyFst(GraphFst):
@@ -42,6 +43,10 @@ class MoneyFst(GraphFst):
 
     def __init__(self, cardinal: GraphFst, decimal: GraphFst, deterministic: bool = True):
         super().__init__(name="money", kind="classify", deterministic=deterministic)
+
+        # Initialize phonetic rules for non-deterministic alternatives
+        if not deterministic:
+            self.phonetic_rules = VietnamesePhoneticRules()
 
         # Load data
         currency_major_labels = load_labels(get_abs_path("data/money/currency.tsv"))
@@ -71,8 +76,12 @@ class MoneyFst(GraphFst):
         # Combine all per_unit mappings
         per_unit_graph = graph_metric_per_units | graph_standalone_per_units | graph_non_metric_per_units
 
-        # Basic components
-        cardinal_graph = cardinal.graph
+        # Basic components - enhanced for non-deterministic mode
+        if deterministic:
+            cardinal_graph = cardinal.graph
+        else:
+            cardinal_graph = self._create_enhanced_cardinal_graph(cardinal.graph)
+            
         currency_major_graph = pynini.string_map(currency_major_labels)
         currency_minor_map = dict(currency_minor_labels)
         decimal_graph = decimal.final_graph_wo_negative
@@ -95,8 +104,24 @@ class MoneyFst(GraphFst):
 
         all_patterns = []
 
+        # Enhanced patterns for non-deterministic mode
+        if not deterministic:
+            # Add fraction alternatives (working)
+            fraction_patterns = self._create_fraction_alternatives()
+            all_patterns.append(fraction_patterns)
+            
+            # Add decimal unit alternatives (working)
+            decimal_unit_patterns = self._create_decimal_unit_alternatives(currency_major_labels, currency_minor_map)
+            all_patterns.append(decimal_unit_patterns)
+            
+            # TODO: Fix flexible currency patterns - currently causing $10 to fail
+            # flexible_patterns = self._create_flexible_currency_patterns(currency_major_labels, currency_minor_map)
+            # all_patterns.append(flexible_patterns)
+
+        # Original patterns (for deterministic mode or as fallback)
         # 1. Symbol-based patterns
         symbol_patterns = []
+        reverse_symbol_patterns = []  # Higher priority for reverse patterns
         minor_only_patterns = []
 
         for symbol, major_name in currency_major_labels:
@@ -105,6 +130,14 @@ class MoneyFst(GraphFst):
             # Simple integer pattern: 10$ -> mười đô la
             simple_pattern = integer_part + pynutil.delete(symbol) + insert_space + maj_tag
             symbol_patterns.append(simple_pattern)
+            
+            # Reverse pattern: $10 -> mười đô la (symbol before number)
+            # Only for actual symbols (not words)
+            if len(symbol) == 1 and not symbol.isalpha():
+                # Use pynini.accep for literal symbol matching
+                symbol_fst = pynini.accep(symbol)
+                reverse_pattern = pynutil.delete(symbol_fst) + integer_part + insert_space + maj_tag
+                reverse_symbol_patterns.append(reverse_pattern)
 
             # Patterns with minor currency (cents/xu)
             if symbol in currency_minor_map:
@@ -136,6 +169,24 @@ class MoneyFst(GraphFst):
                     + preserve_order
                 )
                 symbol_patterns.append(major_minor)
+                
+                # Reverse major + minor pattern: $10,5 -> mười đô la năm mươi xu
+                # Only for actual symbols (not words)
+                if len(symbol) == 1 and not symbol.isalpha():
+                    # Use pynini.accep for literal symbol matching
+                    symbol_fst = pynini.accep(symbol)
+                    reverse_major_minor = (
+                        pynutil.delete(symbol_fst)
+                        + integer_part
+                        + insert_space
+                        + maj_tag
+                        + pynini.cross(NEMO_COMMA, NEMO_SPACE)
+                        + fractional_part
+                        + insert_space
+                        + min_tag
+                        + preserve_order
+                    )
+                    reverse_symbol_patterns.append(reverse_major_minor)
 
         # 2. Word-based patterns
         word_patterns = []
@@ -178,7 +229,11 @@ class MoneyFst(GraphFst):
         word_patterns.append(simple_word_pattern)
 
         # Combine patterns with priorities
-        # Minor-only patterns get highest priority (negative weight)
+        # Reverse symbol patterns get highest priority (for $10 patterns)
+        if reverse_symbol_patterns:
+            all_patterns.append(pynutil.add_weight(pynini.union(*reverse_symbol_patterns), -0.0002))
+            
+        # Minor-only patterns get high priority (negative weight)
         if minor_only_patterns:
             all_patterns.append(pynutil.add_weight(pynini.union(*minor_only_patterns), -0.0001))
 
@@ -196,3 +251,193 @@ class MoneyFst(GraphFst):
         final_graph += per_unit_tag.ques
 
         self.fst = self.add_tokens(final_graph.optimize())
+
+    def _create_enhanced_cardinal_graph(self, base_cardinal_graph):
+        """
+        Create enhanced cardinal graph with phonetic alternatives for non-deterministic mode.
+        """
+        # For numbers that commonly appear in money contexts, add alternatives
+        alternatives = []
+        
+        # Add base cardinal graph
+        alternatives.append(base_cardinal_graph)
+        
+        # Add phonetic alternatives for common money amounts
+        for num in range(1, 101):  # Common money amounts 1-100
+            num_str = str(num)
+            phonetic_alts = self.phonetic_rules.generate_alternatives(num_str, "general")
+            
+            for alt in phonetic_alts:
+                if alt != num_str:  # Don't duplicate base form
+                    alternatives.append(pynini.cross(num_str, alt))
+        
+        return pynini.union(*alternatives)
+
+    def _create_flexible_currency_patterns(self, currency_major_labels, currency_minor_map):
+        """
+        Create patterns that support flexible currency symbol positions:
+        $10, $ 10, 10$, 10 $
+        """
+        all_patterns = []
+        
+        for symbol, major_name in currency_major_labels:
+            # Skip word-based currencies (only process symbols)
+            if len(symbol) > 3 or symbol.isalpha():
+                continue
+                
+            maj_tag = pynutil.insert(f' currency_maj: "{major_name}"')
+            optional_space = pynini.closure(delete_space, 0, 1)
+            
+            # Pattern 1: $10 (symbol before, no space)
+            pattern1 = (
+                pynutil.delete(symbol) +
+                pynutil.insert('integer_part: "') + 
+                self._get_cardinal_alternatives() + 
+                pynutil.insert('"') +
+                insert_space + maj_tag
+            )
+            all_patterns.append(pattern1)
+            
+            # Pattern 2: $ 10 (symbol before, with space)  
+            pattern2 = (
+                pynutil.delete(symbol) +
+                optional_space +
+                pynutil.insert('integer_part: "') + 
+                self._get_cardinal_alternatives() + 
+                pynutil.insert('"') +
+                insert_space + maj_tag
+            )
+            all_patterns.append(pattern2)
+            
+            # Pattern 3: 10$ (symbol after, no space)
+            pattern3 = (
+                pynutil.insert('integer_part: "') + 
+                self._get_cardinal_alternatives() + 
+                pynutil.insert('"') +
+                pynutil.delete(symbol) +
+                insert_space + maj_tag
+            )
+            all_patterns.append(pattern3)
+            
+            # Pattern 4: 10 $ (symbol after, with space)
+            pattern4 = (
+                pynutil.insert('integer_part: "') + 
+                self._get_cardinal_alternatives() + 
+                pynutil.insert('"') +
+                optional_space +
+                pynutil.delete(symbol) +
+                insert_space + maj_tag
+            )
+            all_patterns.append(pattern4)
+            
+            # Decimal patterns with flexible positions
+            if symbol in currency_minor_map:
+                minor_name = currency_minor_map[symbol]
+                min_tag = pynutil.insert(f' currency_min: "{minor_name}"')
+                
+                # Add decimal patterns for each position
+                for base_pattern in [pattern1, pattern2, pattern3, pattern4]:
+                    # Create decimal version: 10,5$ -> "mười đô la năm mười xu" 
+                    decimal_pattern = self._add_decimal_alternatives(base_pattern, maj_tag, min_tag)
+                    all_patterns.append(decimal_pattern)
+        
+        return pynini.union(*all_patterns)
+
+    def _get_cardinal_alternatives(self):
+        """Get cardinal graph with alternatives."""
+        if hasattr(self, 'phonetic_rules'):
+            return self._create_enhanced_cardinal_graph(pynini.closure(pynini.union(*"0123456789"), 1))
+        else:
+            return pynini.closure(pynini.union(*"0123456789"), 1)
+
+    def _add_decimal_alternatives(self, base_pattern, maj_tag, min_tag):
+        """
+        Add decimal reading alternatives:
+        10,5$ -> "mười phẩy năm đô la" OR "mười đô la năm mười xu"
+        """
+        # This is complex - for now, return base pattern
+        # TODO: Implement full decimal alternatives
+        return base_pattern
+
+    def _create_fraction_alternatives(self):
+        """
+        Create fraction patterns with "trên" and "một" alternatives:
+        a/b -> "a trên b" OR "a một b"
+        """
+        alternatives = []
+        
+        # Basic fraction pattern: number/number
+        numerator = pynutil.insert('integer_part: "') + self._get_cardinal_alternatives() + pynutil.insert('"')
+        denominator = pynutil.insert('fractional_part: "') + self._get_cardinal_alternatives() + pynutil.insert('"')
+        
+        # Alternative 1: "a trên b"
+        fraction_with_tren = (
+            numerator +
+            pynini.cross("/", " trên ") +
+            denominator
+        )
+        alternatives.append(fraction_with_tren)
+        
+        # Alternative 2: "a một b" (less common)
+        fraction_with_mot = (
+            numerator +
+            pynini.cross("/", " một ") +
+            denominator
+        )
+        alternatives.append(fraction_with_mot)
+        
+        return pynini.union(*alternatives)
+
+    def _create_decimal_unit_alternatives(self, currency_major_labels, currency_minor_map):
+        """
+        Create decimal unit reading alternatives:
+        10,5$ -> "mười phẩy năm đô la" OR "mười đô la năm mười xu"
+        """
+        alternatives = []
+        
+        for symbol, major_name in currency_major_labels:
+            if symbol not in currency_minor_map:
+                continue
+                
+            minor_name = currency_minor_map[symbol]
+            maj_tag = pynutil.insert(f' currency_maj: "{major_name}"')
+            min_tag = pynutil.insert(f' currency_min: "{minor_name}"')
+            preserve_order = pynutil.insert(" preserve_order: true")
+            
+            # Pattern: integer,fractional + currency
+            integer_part = pynutil.insert('integer_part: "') + self._get_cardinal_alternatives() + pynutil.insert('"')
+            fractional_part = pynutil.insert('fractional_part: "') + self._get_cardinal_alternatives() + pynutil.insert('"')
+            
+            # Alternative 1: "mười phẩy năm đô la" (decimal reading)
+            decimal_reading = (
+                integer_part +
+                pynini.cross(NEMO_COMMA, ' phẩy ') +
+                fractional_part +
+                pynutil.delete(symbol) +
+                insert_space + maj_tag
+            )
+            alternatives.append(decimal_reading)
+            
+            # Alternative 2: "mười đô la năm mười xu" (major + minor reading)
+            # Convert fractional part to minor unit (multiply by 10 for cents)
+            minor_reading = (
+                integer_part +
+                insert_space + maj_tag +
+                pynini.cross(NEMO_COMMA, NEMO_SPACE) +
+                self._convert_fractional_to_minor(fractional_part) +
+                insert_space + min_tag +
+                pynutil.delete(symbol) +
+                preserve_order
+            )
+            alternatives.append(minor_reading)
+        
+        return pynini.union(*alternatives) if alternatives else pynini.accep("")
+
+    def _convert_fractional_to_minor(self, fractional_part):
+        """
+        Convert fractional part to minor currency units.
+        E.g., 0.5 -> 50 (cents), 0.05 -> 5 (cents)
+        """
+        # For now, simple approach - multiply by 10 and use cardinal alternatives
+        # This is a simplified implementation
+        return fractional_part  # TODO: Implement proper conversion

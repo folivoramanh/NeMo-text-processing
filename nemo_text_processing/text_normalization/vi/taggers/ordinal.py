@@ -36,7 +36,8 @@ class OrdinalFst(GraphFst):
     def __init__(self, cardinal, deterministic: bool = True):
         super().__init__(name="ordinal", kind="classify", deterministic=deterministic)
 
-        prefix = "thứ "
+        # Vietnamese ordinal prefixes
+        ordinal_prefixes = pynini.union("thứ ", "hạng ")
         number_pattern = pynini.closure(NEMO_DIGIT, 1)
 
         # Load ordinal exceptions
@@ -61,7 +62,7 @@ class OrdinalFst(GraphFst):
                 combined_graph = pynini.union(exception_graph, cardinal.graph)
 
         self.graph = (
-            pynutil.delete(prefix)
+            pynutil.delete(ordinal_prefixes)
             + pynutil.insert("integer: \"")
             + pynini.compose(number_pattern, combined_graph)
             + pynutil.insert("\"")
@@ -104,12 +105,15 @@ class OrdinalFst(GraphFst):
                     for alt in alternatives:
                         rule_based_patterns.append(pynini.cross(number_str, alt))
             
-            # Combine all patterns
+            # Combine all patterns with weights to prefer enhanced alternatives
             all_patterns = exception_patterns + rule_based_patterns
             if all_patterns:
                 enhanced_graph = pynini.union(*all_patterns)
-                # Also include standard cardinal graph as fallback
-                combined_graph = pynini.union(enhanced_graph, cardinal.graph)
+                # Give enhanced alternatives lower weight (higher priority) than standard cardinal
+                combined_graph = pynini.union(
+                    pynutil.add_weight(enhanced_graph, 0.9),  # Enhanced alternatives get priority
+                    pynutil.add_weight(cardinal.graph, 1.1)   # Standard alternatives get lower priority
+                )
             else:
                 combined_graph = cardinal.graph
                 

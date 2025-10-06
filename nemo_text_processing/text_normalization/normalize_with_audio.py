@@ -163,6 +163,10 @@ class NormalizerWithAudio(Normalizer):
             if len(cur_semiotic_span) == 0:
                 text_with_span_tags_list[masked_idx_list[sem_tag_idx]] = ""
             else:
+                # Special handling for Vietnamese ordinal context
+                if self.lang == "vi":
+                    cur_semiotic_span = self._add_ordinal_context(text, cur_semiotic_span, masked_idx_list[sem_tag_idx])
+                
                 non_deter_options = self.normalize_non_deterministic(
                     text=cur_semiotic_span,
                     n_tagged=n_tagged,
@@ -175,6 +179,11 @@ class NormalizerWithAudio(Normalizer):
                         pred_text=cur_pred_text,
                         verbose=verbose,
                     )
+                    
+                    # Clean up potential duplicate ordinal prefixes for Vietnamese
+                    if self.lang == "vi":
+                        best_option = self._clean_ordinal_duplicates(best_option)
+                    
                     if cer_threshold > 0 and cer > cer_threshold:
                         best_option = cur_deter_norm
                         if verbose:
@@ -399,6 +408,55 @@ class NormalizerWithAudio(Normalizer):
                 logger.info(option)
             logger.info('-' * 30)
         return normalized_text, cer, idx
+
+    def _add_ordinal_context(self, original_text: str, semiotic_span: str, span_position: int):
+        """
+        Add ordinal context to semiotic spans to prevent context loss.
+        
+        If a number appears after 'thứ' or 'hạng' in the original text,
+        prepend the ordinal prefix to maintain context during classification.
+        """
+        import re
+        
+        # Check if this span is just a number
+        if not re.match(r'^\d+$', semiotic_span.strip()):
+            return semiotic_span
+        
+        # Split original text into words to find context
+        words = original_text.split()
+        
+        # Find the position of the semiotic span in the original text
+        # span_position is the index in the masked list, we need to find the actual word position
+        if span_position > 0 and span_position - 1 < len(words):
+            prev_word = words[span_position - 1].lower()
+            
+            # If previous word is ordinal prefix, add it to the span
+            if prev_word in ['thứ', 'hạng']:
+                return f"{prev_word} {semiotic_span}"
+        
+        return semiotic_span
+
+    def _clean_ordinal_duplicates(self, text: str):
+        """
+        Clean up duplicate ordinal prefixes that may result from context restoration.
+        
+        E.g., "thứ thứ nhất" → "thứ nhất"
+        """
+        import re
+        
+        # Pattern to match duplicate ordinal prefixes
+        duplicate_patterns = [
+            (r'\bthứ\s+thứ\s+', 'thứ '),
+            (r'\bhạng\s+thứ\s+', 'hạng '),
+            (r'\bthứ\s+hạng\s+', 'thứ '),
+            (r'\bhạng\s+hạng\s+', 'hạng ')
+        ]
+        
+        cleaned_text = text
+        for pattern, replacement in duplicate_patterns:
+            cleaned_text = re.sub(pattern, replacement, cleaned_text, flags=re.IGNORECASE)
+        
+        return cleaned_text
 
 
 def calculate_cer(normalized_texts: List[str], pred_text: str, remove_punct=False) -> List[Tuple[str, float]]:

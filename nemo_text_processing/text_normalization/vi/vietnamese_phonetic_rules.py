@@ -286,17 +286,30 @@ class VietnamesePhoneticRules:
     def _generate_large_number_alternatives_v2(self, number: int) -> List[str]:
         """Generate alternatives for numbers >= 1000 using magnitude system"""
         try:
-            # Decompose number into magnitude components
-            components = self._decompose_number_by_magnitude(number)
-            
-            # Generate alternatives for the combination
-            alternatives = self._combine_magnitude_components(components)
-            
-            # Ensure we have at least the basic form
-            if not alternatives:
-                alternatives = [str(number)]
-            
-            return alternatives
+            # Special handling for 4-digit years (e.g., 2024)
+            if 1000 <= number <= 9999:
+                alternatives = []
+                
+                # Standard magnitude-based alternatives
+                components = self._decompose_number_by_magnitude(number)
+                standard_alts = self._combine_magnitude_components(components)
+                alternatives.extend(standard_alts)
+                
+                # Add short forms for years (e.g., 2024 → "hai không hai tư")
+                year_short_forms = self._generate_year_short_forms(number)
+                alternatives.extend(year_short_forms)
+                
+                return self._remove_duplicates(alternatives)
+            else:
+                # Regular magnitude system for other large numbers
+                components = self._decompose_number_by_magnitude(number)
+                alternatives = self._combine_magnitude_components(components)
+                
+                # Ensure we have at least the basic form
+                if not alternatives:
+                    alternatives = [str(number)]
+                
+                return alternatives
             
         except Exception as e:
             print(f"Warning: Could not generate large number alternatives for {number}: {e}")
@@ -317,6 +330,34 @@ class VietnamesePhoneticRules:
             return self._generate_three_digit_alternatives(number, context)
         else:
             return [str(number)]
+
+    def _generate_year_short_forms(self, number: int) -> List[str]:
+        """Generate short forms for 4-digit years (e.g., 2024 → hai không hai tư)"""
+        alternatives = []
+        
+        if 1000 <= number <= 9999:
+            # Convert to string and split into digits
+            year_str = str(number)
+            
+            # Generate digit-by-digit reading
+            digit_alternatives = []
+            for digit_char in year_str:
+                digit = int(digit_char)
+                if digit == 0:
+                    # Special handling for zero in year context
+                    zero_alts = ["không", "lẻ", "linh"]  # Common zero pronunciations
+                    digit_alternatives.append(zero_alts)
+                else:
+                    digit_alts = self._get_digit_alternatives_in_context(digit, "general")
+                    digit_alternatives.append(digit_alts)
+            
+            # Generate combinations of digit alternatives
+            import itertools
+            for combo in itertools.product(*digit_alternatives):
+                short_form = " ".join(combo)
+                alternatives.append(short_form)
+        
+        return alternatives
 
     def _generate_two_digit_alternatives(self, num: int) -> List[str]:
         """Generate alternatives for two-digit numbers (10-99)"""
@@ -537,7 +578,74 @@ class VietnamesePhoneticRules:
                     if alt not in alternatives:
                         alternatives.append(alt)
         
+        # Special handling for 15: should have both "mười lăm" and "mười năm"
+        if num == 15:
+            if "mười năm" not in alternatives:
+                alternatives.append("mười năm")
+        
         return alternatives if alternatives else [teen_str]
+
+    def generate_date_day_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
+        """Generate alternatives for date days with Vietnamese prefixes"""
+        alternatives = []
+        
+        # Get basic number alternatives
+        base_alternatives = self.generate_alternatives(number_str, "general")
+        
+        if include_prefix:
+            # Add prefix variations: ngày, mùng, mồng
+            day_prefixes = ["ngày", "mùng", "mồng"]
+            
+            for prefix in day_prefixes:
+                for base_alt in base_alternatives:
+                    alternatives.append(f"{prefix} {base_alt}")
+            
+            # Add compound prefixes for days 1-10 (ngày mùng, ngày mồng)
+            day_num = int(number_str)
+            if 1 <= day_num <= 10:
+                compound_prefixes = ["ngày mùng", "ngày mồng"]
+                for compound_prefix in compound_prefixes:
+                    for base_alt in base_alternatives:
+                        alternatives.append(f"{compound_prefix} {base_alt}")
+        else:
+            # No prefix, just return base alternatives
+            alternatives.extend(base_alternatives)
+        
+        return self._remove_duplicates(alternatives)
+
+    def generate_date_month_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
+        """Generate alternatives for date months with Vietnamese prefixes"""
+        alternatives = []
+        
+        # Get basic number alternatives
+        base_alternatives = self.generate_alternatives(number_str, "general")
+        
+        if include_prefix:
+            # Add "tháng" prefix
+            for base_alt in base_alternatives:
+                alternatives.append(f"tháng {base_alt}")
+        else:
+            # No prefix, just return base alternatives
+            alternatives.extend(base_alternatives)
+        
+        return self._remove_duplicates(alternatives)
+
+    def generate_date_year_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
+        """Generate alternatives for date years with Vietnamese prefixes"""
+        alternatives = []
+        
+        # Get basic number alternatives
+        base_alternatives = self.generate_alternatives(number_str, "general")
+        
+        if include_prefix:
+            # Add "năm" prefix
+            for base_alt in base_alternatives:
+                alternatives.append(f"năm {base_alt}")
+        else:
+            # No prefix, just return base alternatives
+            alternatives.extend(base_alternatives)
+        
+        return self._remove_duplicates(alternatives)
 
     def generate_ordinal_alternatives(self, number_str: str) -> List[str]:
         """Generate alternatives for ordinal numbers using TSV data"""
@@ -547,7 +655,15 @@ class VietnamesePhoneticRules:
         if number_str in self.ordinal_exceptions:
             alternatives.append(self.ordinal_exceptions[number_str])
         
-        # Apply general number rules
+        # Add specific ordinal alternatives
+        if number_str == "1":
+            alternatives.extend(["nhất", "một"])  # hạng nhất hoặc hạng một
+        elif number_str == "2":
+            alternatives.extend(["nhì", "hai"])   # hạng nhì hoặc hạng hai
+        elif number_str == "4":
+            alternatives.extend(["tư", "bốn"])    # hạng tư hoặc hạng bốn
+        
+        # Apply general number rules for other cases
         general_alts = self.generate_alternatives(number_str, "general")
         alternatives.extend(general_alts)
         
@@ -555,7 +671,20 @@ class VietnamesePhoneticRules:
     
     def generate_fraction_numerator_alternatives(self, number_str: str) -> List[str]:
         """Generate alternatives for fraction numerators"""
-        return self.generate_alternatives(number_str, "general")
+        alternatives = []
+        
+        # Special handling for numerator "1" in fractions (1/x)
+        if number_str == "1":
+            alternatives.extend([
+                "một",        # một phần x
+                "",           # phần x (không có một)
+                "chia"        # chia x (alternative reading)
+            ])
+        else:
+            # For other numerators, use general alternatives
+            alternatives = self.generate_alternatives(number_str, "general")
+        
+        return self._remove_duplicates(alternatives)
     
     def generate_fraction_denominator_alternatives(self, number_str: str) -> List[str]:
         """Generate alternatives for fraction denominators"""

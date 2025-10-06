@@ -47,6 +47,13 @@ class MoneyFst(GraphFst):
         currency_maj = pynutil.delete('currency_maj: "') + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete('"')
         currency_min = pynutil.delete('currency_min: "') + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete('"')
 
+        # Enhanced patterns for non-deterministic mode
+        if not deterministic:
+            # Add support for fraction alternatives with "trên" and "một"
+            fraction_alternatives = self._create_fraction_verbalization()
+        else:
+            fraction_alternatives = pynini.accep("")
+
         # Following English prioritization pattern for better determinism
 
         # 1. Minor only: fractional + minor (highest priority for fractional-only cases)
@@ -106,7 +113,8 @@ class MoneyFst(GraphFst):
 
         # Create main graph with proper priority order (similar to English)
         graph = (
-            graph_minor  # Handle minor-only cases first
+            fraction_alternatives  # Handle fraction alternatives first (if non-deterministic)
+            | graph_minor  # Handle minor-only cases
             | graph_integer_with_minor  # Handle major+minor cases
             | graph_decimal_with_quantity  # Handle decimal with quantity cases (before simpler decimal)
             | graph_with_quantity  # Handle quantity cases
@@ -142,3 +150,36 @@ class MoneyFst(GraphFst):
         graph += (delete_space + pynutil.delete("preserve_order: true")).ques
 
         self.fst = self.delete_tokens(graph).optimize()
+
+    def _create_fraction_verbalization(self):
+        """
+        Create verbalization patterns for fraction alternatives from tagger.
+        
+        Handles patterns like:
+        - money { integer_part: "một" fractional_part: "hai" } with "trên" -> "một trên hai"
+        - money { integer_part: "một" fractional_part: "hai" } with "một" -> "một một hai" 
+        """
+        integer_part = pynutil.delete('integer_part: "') + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete('"')
+        fractional_part = pynutil.delete('fractional_part: "') + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete('"')
+        
+        alternatives = []
+        
+        # Pattern 1: "a trên b" (most common fraction reading)
+        fraction_with_tren = (
+            integer_part +
+            delete_space +
+            pynutil.insert(" trên ") +
+            fractional_part
+        )
+        alternatives.append(fraction_with_tren)
+        
+        # Pattern 2: "a một b" (alternative fraction reading)
+        fraction_with_mot = (
+            integer_part +
+            delete_space +
+            pynutil.insert(" một ") +
+            fractional_part
+        )
+        alternatives.append(fraction_with_mot)
+        
+        return pynini.union(*alternatives) if alternatives else pynini.accep("")
