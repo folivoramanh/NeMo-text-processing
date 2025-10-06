@@ -36,12 +36,51 @@ class WhiteListFst(GraphFst):
         super().__init__(name="whitelist", kind="classify", deterministic=deterministic)
 
         # Load symbol mappings
-        symbol_labels = load_labels(get_abs_path("data/whitelist/symbol.tsv"))
-        symbol_graph = pynini.string_map(symbol_labels)
+        try:
+            symbol_graph = pynini.string_file(get_abs_path("data/whitelist/symbol.tsv"))
+        except:
+            symbol_labels = [
+                ("&", "và"),
+                ("#", "thăng"),
+                ("@", "a còng"),
+                ("$", "đô la"),
+                ("£", "bảng"),
+                ("€", "ơ rô"),
+                ("¥", "yên"),
+                ("₩", "won"),
+                ("₫", "đồng"),
+                ("°", "độ"),
+                ("º", "độ"),
+                ("¢", "xu"),
+                ("±", "cộng trừ"),
+                ("×", "nhân"),
+                ("÷", "chia"),
+                ("≈", "xấp xỉ"),
+                ("≠", "khác"),
+                ("≤", "nhỏ hơn hoặc bằng"),
+                ("≥", "lớn hơn hoặc bằng"),
+                ("<", "nhỏ hơn"),
+                (">", "lớn hơn"),
+                ("%", "phần trăm"),
+                ("*", "sao"),
+                ("+", "cộng"),
+                ("-", "trừ"),
+                ("=", "bằng"),
+                ("^", "mũ"),
+                ("|", "hoặc"),
+                ("~", "dấu ngã")
+            ]
+            symbol_graph = pynini.string_map(symbol_labels)
         
         # Load TTS mappings  
-        tts_labels = load_labels(get_abs_path("data/whitelist/tts.tsv"))
-        tts_graph = pynini.string_map(tts_labels)
+        try:
+            tts_graph = pynini.string_file(get_abs_path("data/whitelist/tts.tsv"))
+        except:
+            tts_labels = [
+                ("vs", "so với"),
+                ("vs.", "so với")
+            ]
+            tts_graph = pynini.string_map(tts_labels)
         
         # Combine graphs
         graph = symbol_graph | tts_graph
