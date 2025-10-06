@@ -26,7 +26,6 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
 )
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
 
-
 class MoneyFst(GraphFst):
     """
     Finite state transducer for classifying money, e.g.
@@ -97,6 +96,7 @@ class MoneyFst(GraphFst):
 
         # 1. Symbol-based patterns
         symbol_patterns = []
+        reverse_symbol_patterns = []
         minor_only_patterns = []
 
         for symbol, major_name in currency_major_labels:
@@ -105,6 +105,12 @@ class MoneyFst(GraphFst):
             # Simple integer pattern: 10$ -> mười đô la
             simple_pattern = integer_part + pynutil.delete(symbol) + insert_space + maj_tag
             symbol_patterns.append(simple_pattern)
+            
+            # Reverse pattern: $10 -> mười đô la (symbol before number)
+            if len(symbol) == 1 and not symbol.isalpha():
+                symbol_fst = pynini.accep(symbol)
+                reverse_pattern = pynutil.delete(symbol_fst) + integer_part + insert_space + maj_tag
+                reverse_symbol_patterns.append(reverse_pattern)
 
             # Patterns with minor currency (cents/xu)
             if symbol in currency_minor_map:
@@ -136,6 +142,24 @@ class MoneyFst(GraphFst):
                     + preserve_order
                 )
                 symbol_patterns.append(major_minor)
+                
+                # Reverse major + minor pattern: $10,5 -> mười đô la năm mươi xu
+                # Only for actual symbols (not words)
+                if len(symbol) == 1 and not symbol.isalpha():
+                    # Use pynini.accep for literal symbol matching
+                    symbol_fst = pynini.accep(symbol)
+                    reverse_major_minor = (
+                        pynutil.delete(symbol_fst)
+                        + integer_part
+                        + insert_space
+                        + maj_tag
+                        + pynini.cross(NEMO_COMMA, NEMO_SPACE)
+                        + fractional_part
+                        + insert_space
+                        + min_tag
+                        + preserve_order
+                    )
+                    reverse_symbol_patterns.append(reverse_major_minor)
 
         # 2. Word-based patterns
         word_patterns = []
@@ -178,7 +202,11 @@ class MoneyFst(GraphFst):
         word_patterns.append(simple_word_pattern)
 
         # Combine patterns with priorities
-        # Minor-only patterns get highest priority (negative weight)
+        # Reverse symbol patterns get highest priority (for $10 patterns)
+        if reverse_symbol_patterns:
+            all_patterns.append(pynutil.add_weight(pynini.union(*reverse_symbol_patterns), -0.0002))
+            
+        # Minor-only patterns get high priority (negative weight)
         if minor_only_patterns:
             all_patterns.append(pynutil.add_weight(pynini.union(*minor_only_patterns), -0.0001))
 
