@@ -110,6 +110,10 @@ class MoneyFst(GraphFst):
             # Apply to all symbols, not just single character ones
             reverse_pattern = pynutil.delete(symbol) + integer_part + insert_space + maj_tag
             reverse_symbol_patterns.append(reverse_pattern)
+            
+            # Reverse pattern with optional space: $ 10 or US$ 10 -> mười đô la
+            reverse_pattern_with_space = pynutil.delete(symbol) + optional_space + integer_part + insert_space + maj_tag
+            reverse_symbol_patterns.append(reverse_pattern_with_space)
 
             # Patterns with minor currency (cents/xu)
             if symbol in currency_minor_map:
@@ -168,11 +172,27 @@ class MoneyFst(GraphFst):
                     + preserve_order
                 )
                 reverse_symbol_patterns.append(reverse_major_minor)
+                
+                # Reverse major + minor pattern with space: $ 10,5 or US$ 10,5 -> mười đô la năm mươi xu
+                reverse_major_minor_with_space = (
+                    pynutil.delete(symbol)
+                    + optional_space
+                    + integer_part
+                    + insert_space
+                    + maj_tag
+                    + pynini.cross(NEMO_COMMA, NEMO_SPACE)
+                    + fractional_part
+                    + insert_space
+                    + min_tag
+                    + preserve_order
+                )
+                reverse_symbol_patterns.append(reverse_major_minor_with_space)
 
         # 2. Word-based patterns
         word_patterns = []
 
         # Complex decimal + currency: 1tr5 vnd -> một triệu năm trăm nghìn đồng
+        # Also handles cases like 321,6 tỷ USD -> ba trăm hai mươi mốt phẩy sáu tỷ đô la
         decimal_with_currency = (
             decimal_graph
             + optional_space
@@ -208,8 +228,89 @@ class MoneyFst(GraphFst):
             + pynutil.insert('"')
         )
         word_patterns.append(simple_word_pattern)
+        
+        # Add reverse decimal patterns for symbols: $ 321,6 -> ba trăm hai mươi mốt phẩy sáu đô la
+        # This should have higher priority than fractional cents patterns
+        for symbol, major_name in currency_major_labels:
+            maj_tag = pynutil.insert(f' currency_maj: "{major_name}"')
+            
+            # Reverse decimal pattern: $321,6 -> ba trăm hai mươi mốt phẩy sáu đô la  
+            reverse_decimal_pattern = (
+                pynutil.delete(symbol)
+                + optional_space
+                + decimal_graph
+                + insert_space
+                + maj_tag
+                + preserve_order
+            )
+            # Add with high priority to override fractional cents
+            reverse_symbol_patterns.append(reverse_decimal_pattern)
+
+        # 3. Generic combined patterns for complex currency cases
+        combined_patterns = []
+        
+        # Define currency combinations that should be treated as single units
+        currency_combinations = [
+            ("$", "USD", "đô la"),
+            ("US$", "USD", "đô la"), 
+            ("$", "US", "đô la"),
+            ("US$", "US", "đô la"),
+        ]
+        
+        for symbol1, symbol2, unified_name in currency_combinations:
+            unified_tag = pynutil.insert(f' currency_maj: "{unified_name}"')
+            
+            # Generic patterns for all combinations of symbol1, number, symbol2
+            number_patterns = [
+                (integer_part, "integer"),
+                (decimal_graph, "decimal")
+            ]
+            
+            for number_pattern, pattern_type in number_patterns:
+                # Pattern 1: symbol1 number symbol2 (e.g., $ 10 USD)
+                pattern1 = (
+                    pynutil.delete(symbol1)
+                    + optional_space
+                    + number_pattern
+                    + optional_space
+                    + pynutil.delete(symbol2)
+                    + insert_space
+                    + unified_tag
+                    + preserve_order
+                )
+                combined_patterns.append(pattern1)
+                
+                # Pattern 2: symbol2 symbol1 number (e.g., USD $ 10)
+                pattern2 = (
+                    pynutil.delete(symbol2)
+                    + optional_space
+                    + pynutil.delete(symbol1)
+                    + optional_space
+                    + number_pattern
+                    + insert_space
+                    + unified_tag
+                    + preserve_order
+                )
+                combined_patterns.append(pattern2)
+                
+                # Pattern 3: number symbol1 symbol2 (e.g., 10 $ USD)
+                pattern3 = (
+                    number_pattern
+                    + optional_space
+                    + pynutil.delete(symbol1)
+                    + optional_space
+                    + pynutil.delete(symbol2)
+                    + insert_space
+                    + unified_tag
+                    + preserve_order
+                )
+                combined_patterns.append(pattern3)
 
         # Combine patterns without weights
+        # Combined patterns get highest priority (for $ digit USD cases)
+        if combined_patterns:
+            all_patterns.append(pynini.union(*combined_patterns))
+            
         if minor_only_patterns:
             all_patterns.append(pynini.union(*minor_only_patterns))
             

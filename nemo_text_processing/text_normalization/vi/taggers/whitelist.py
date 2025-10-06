@@ -15,56 +15,41 @@
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.vi.graph_utils import GraphFst, convert_space
+from nemo_text_processing.text_normalization.vi.graph_utils import NEMO_SIGMA, GraphFst
 from nemo_text_processing.text_normalization.vi.utils import get_abs_path, load_labels
 
 
 class WhiteListFst(GraphFst):
     """
     Finite state transducer for classifying whitelist for Vietnamese, e.g.
-        "h" -> tokens { name: "giờ" }
-        "p" -> tokens { name: "phút" }
-        "s" -> tokens { name: "giây" }
-    This class has highest priority among all classifier grammars. Whitelisted tokens are defined and loaded from "data/whitelist.tsv".
+        Dr. -> tokens { name: "bác sĩ" }
+        $ -> tokens { name: "đô la" }
+    This class has highest priority among all classifier grammars. Whitelisted tokens are defined and loaded from data files.
 
     Args:
-        input_case: accepting either "lower_cased" or "cased" input.
         deterministic: if True will provide a single transduction option,
             for False multiple options (used for audio-based normalization)
         input_file: path to a file with whitelist replacements
     """
 
-    def __init__(self, input_case: str, deterministic: bool = True, input_file: str = None):
+    def __init__(self, input_case: str = "cased", deterministic: bool = True, input_file: str = None):
         super().__init__(name="whitelist", kind="classify", deterministic=deterministic)
 
-        def _get_whitelist_graph(input_case, file):
+        def _get_whitelist_graph(file):
             whitelist = load_labels(file)
-            if input_case == "lower_cased":
-                whitelist = [[x[0].lower()] + x[1:] for x in whitelist]
             graph = pynini.string_map(whitelist)
             return graph
 
-        graph = _get_whitelist_graph(input_case, get_abs_path("data/whitelist.tsv"))
-        if not deterministic and input_case != "lower_cased":
-            graph |= pynutil.add_weight(
-                _get_whitelist_graph("lower_cased", get_abs_path("data/whitelist.tsv")), weight=0.0001
-            )
+        # Load symbol mappings
+        graph = _get_whitelist_graph(get_abs_path("data/whitelist/symbol.tsv"))
+        
+        # Load TTS mappings  
+        graph |= _get_whitelist_graph(get_abs_path("data/whitelist/tts.tsv"))
 
-        if input_file:
-            whitelist_provided = _get_whitelist_graph(input_case, input_file)
-            if not deterministic:
-                graph |= whitelist_provided
-            else:
-                graph = whitelist_provided
+        # Compose with non-slash filter like English does
+        graph = pynini.compose(
+            pynini.difference(NEMO_SIGMA, pynini.accep("/")).optimize(),
+            graph,
+        ).optimize()
 
-        # Add time units from time_units.tsv for better time handling
-        if not deterministic:
-            time_units_graph = _get_whitelist_graph(input_case, file=get_abs_path("data/time/time_units.tsv"))
-            graph |= time_units_graph
-
-        self.graph = graph
-        self.final_graph = convert_space(self.graph).optimize()
-        self.fst = (pynutil.insert("name: \"") + self.final_graph + pynutil.insert("\"")).optimize()
-
-        # Add tokens wrapper
-        self.fst = self.add_tokens(self.fst)
+        self.fst = (pynutil.insert("name: \"") + graph + pynutil.insert("\"")).optimize()
