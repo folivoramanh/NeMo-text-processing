@@ -35,16 +35,16 @@ class WhiteListFst(GraphFst):
     def __init__(self, input_case: str = "cased", deterministic: bool = True, input_file: str = None):
         super().__init__(name="whitelist", kind="classify", deterministic=deterministic)
 
-        def _get_whitelist_graph(file):
-            whitelist = load_labels(file)
-            graph = pynini.string_map(whitelist)
-            return graph
-
         # Load symbol mappings
-        graph = _get_whitelist_graph(get_abs_path("data/whitelist/symbol.tsv"))
+        symbol_labels = load_labels(get_abs_path("data/whitelist/symbol.tsv"))
+        symbol_graph = pynini.string_map(symbol_labels)
         
         # Load TTS mappings  
-        graph |= _get_whitelist_graph(get_abs_path("data/whitelist/tts.tsv"))
+        tts_labels = load_labels(get_abs_path("data/whitelist/tts.tsv"))
+        tts_graph = pynini.string_map(tts_labels)
+        
+        # Combine graphs
+        graph = symbol_graph | tts_graph
 
         # Compose with non-slash filter like English does
         graph = pynini.compose(
