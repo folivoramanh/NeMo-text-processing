@@ -187,6 +187,24 @@ class MoneyFst(GraphFst):
                         + preserve_order
                     )
                     reverse_symbol_patterns.append(reverse_major_minor)
+                
+                # Reverse major + minor pattern: $10,5 -> mười đô la năm mươi xu
+                # Only for actual symbols (not words)
+                if len(symbol) == 1 and not symbol.isalpha():
+                    # Use pynini.accep for literal symbol matching
+                    symbol_fst = pynini.accep(symbol)
+                    reverse_major_minor = (
+                        pynutil.delete(symbol_fst)
+                        + integer_part
+                        + insert_space
+                        + maj_tag
+                        + pynini.cross(NEMO_COMMA, NEMO_SPACE)
+                        + fractional_part
+                        + insert_space
+                        + min_tag
+                        + preserve_order
+                    )
+                    reverse_symbol_patterns.append(reverse_major_minor)
 
         # 2. Word-based patterns
         word_patterns = []
@@ -229,6 +247,11 @@ class MoneyFst(GraphFst):
         word_patterns.append(simple_word_pattern)
 
         # Combine patterns with priorities
+        # Reverse symbol patterns get highest priority (for $10 patterns)
+        if reverse_symbol_patterns:
+            all_patterns.append(pynutil.add_weight(pynini.union(*reverse_symbol_patterns), -0.0002))
+            
+        # Minor-only patterns get high priority (negative weight)
         # Reverse symbol patterns get highest priority (for $10 patterns)
         if reverse_symbol_patterns:
             all_patterns.append(pynutil.add_weight(pynini.union(*reverse_symbol_patterns), -0.0002))
