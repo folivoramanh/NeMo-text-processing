@@ -128,7 +128,7 @@ class DateFst(GraphFst):
         # Higher priority for patterns that preserve input prefixes
         prefix_preserving_pattern = pynini.compose(
             day_prefix + day_digit + separator + month_digit + separator + year_digit,
-            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("year: \"") + year_convert_no_prefix + pynutil.insert("\""),
+            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("year: \"") + year_convert + pynutil.insert("\""),
         )
         patterns.append(pynutil.add_weight(prefix_preserving_pattern, -0.1))  # Higher priority
 
@@ -145,16 +145,16 @@ class DateFst(GraphFst):
         for sep in [separator, pynini.accep(NEMO_SPACE)]:
             month_prefix_pattern = pynini.compose(
                 month_prefix + month_digit + sep + year_digit,
-                pynutil.insert("month: \"") + month_prefix + month_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(sep) + pynutil.insert("year: \"") + year_convert_no_prefix + pynutil.insert("\""),
+                pynutil.insert("month: \"") + month_prefix + month_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(sep) + pynutil.insert("year: \"") + year_convert + pynutil.insert("\""),
             )
             patterns.append(pynutil.add_weight(month_prefix_pattern, -0.1))  # Higher priority
 
-        day_month_prefix_pattern = pynini.compose(day_prefix + day_digit + separator + month_digit, pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\""))
+        day_month_prefix_pattern = pynini.compose(day_prefix + day_digit + separator + month_digit, pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(separator) + pynutil.insert("month: \"") + month_convert + pynutil.insert("\""))
         patterns.append(pynutil.add_weight(day_month_prefix_pattern, -0.1))  # Higher priority
 
         day_month_word_prefix_pattern = pynini.compose(
             day_prefix + day_digit + pynini.accep(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + month_digit,
-            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + pynutil.insert("month: \"") + month_convert_no_prefix + pynutil.insert("\""),
+            pynutil.insert("day: \"") + day_prefix + day_convert_no_prefix + pynutil.insert("\" ") + pynutil.delete(NEMO_SPACE + MONTH_WORD + NEMO_SPACE) + pynutil.insert("month: \"") + month_convert + pynutil.insert("\""),
         )
         patterns.append(pynutil.add_weight(day_month_word_prefix_pattern, -0.1))  # Higher priority
 
