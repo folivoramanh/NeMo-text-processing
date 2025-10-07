@@ -72,8 +72,18 @@ class VietnamesePhoneticRules:
             }
 
     def _remove_duplicates(self, items: List[str]) -> List[str]:
-        """Remove duplicates while preserving order using standard pattern"""
-        return list(dict.fromkeys(items)) if items else []
+        """Remove duplicates while preserving order and filter out incomplete conversions"""
+        if not items:
+            return []
+        
+        # Filter out alternatives containing raw digits (incomplete conversion)
+        filtered_items = []
+        for item in items:
+            if not any(char.isdigit() for char in item):
+                filtered_items.append(item)
+        
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(filtered_items))
 
     def _load_tsv_as_dict(self, rel_path: str) -> Dict[str, str]:
         """Load TSV data as dictionary using existing utilities"""
@@ -447,7 +457,7 @@ class VietnamesePhoneticRules:
         short_forms = self._generate_short_form_alternatives(num)
         alternatives.extend(short_forms)
                 
-        return alternatives
+        return self._remove_duplicates(alternatives)
 
     def _generate_short_form_alternatives(self, num: int) -> List[str]:
         """Generate ALL possible short form alternatives for ANY 3-digit number"""
