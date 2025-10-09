@@ -333,7 +333,13 @@ class NormalizerWithAudio(Normalizer):
                     except pynini.lib.rewrite.Error:
                         tagged_texts = rewrite.rewrites(text, self.tagger_non_deterministic.fst)
             else:
-                tagged_texts = rewrite.rewrites(text, self.tagger_non_deterministic.fst)
+                if self.lang in ["vi"]:  # Add Vietnamese to use fst_no_digits filtering
+                    try:
+                        tagged_texts = rewrite.rewrites(text, self.tagger_non_deterministic.fst_no_digits)
+                    except pynini.lib.rewrite.Error:
+                        tagged_texts = rewrite.rewrites(text, self.tagger_non_deterministic.fst)
+                else:
+                    tagged_texts = rewrite.rewrites(text, self.tagger_non_deterministic.fst)
         else:
             if self.lang == "en":
                 # this to keep arpabet phonemes in the list of options
@@ -350,7 +356,17 @@ class NormalizerWithAudio(Normalizer):
                             text, self.tagger_non_deterministic.fst, nshortest=n_tagged
                         )
             else:
-                tagged_texts = rewrite.top_rewrites(text, self.tagger_non_deterministic.fst, nshortest=n_tagged)
+                if self.lang in ["vi"]:  # Add Vietnamese to use fst_no_digits filtering
+                    try:
+                        tagged_texts = rewrite.top_rewrites(
+                            text, self.tagger_non_deterministic.fst_no_digits, nshortest=n_tagged
+                        )
+                    except pynini.lib.rewrite.Error:
+                        tagged_texts = rewrite.top_rewrites(
+                            text, self.tagger_non_deterministic.fst, nshortest=n_tagged
+                        )
+                else:
+                    tagged_texts = rewrite.top_rewrites(text, self.tagger_non_deterministic.fst, nshortest=n_tagged)
         return tagged_texts
 
     def _verbalize(self, tagged_text: str, normalized_texts: List[str], n_tagged: int, verbose: bool = False):

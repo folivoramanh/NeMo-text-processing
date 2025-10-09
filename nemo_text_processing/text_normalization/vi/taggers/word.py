@@ -16,6 +16,7 @@ import pynini
 from pynini.lib import pynutil
 
 from nemo_text_processing.text_normalization.vi.graph_utils import NEMO_ALPHA, NEMO_DIGIT, NEMO_NOT_SPACE, GraphFst
+from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
 
 
 class WordFst(GraphFst):
@@ -28,19 +29,24 @@ class WordFst(GraphFst):
             for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self, deterministic: bool = True):
+    def __init__(self, punctuation: GraphFst, deterministic: bool = True):
         super().__init__(name="word", kind="classify", deterministic=deterministic)
 
         # Symbols that should cause token breaks
         # Include measure symbols, currency symbols, and digits
+        punct = PunctuationFst().graph
+        default_graph = pynini.closure(pynini.difference(NEMO_NOT_SPACE, punct.project("input")), 1)
         symbols_to_exclude = pynini.union("°", "′", "″", "$", "€", "₩", "£", "¥", "#", "%", "₫", NEMO_DIGIT).optimize()
+        graph = pynini.closure(pynini.difference(NEMO_NOT_SPACE, symbols_to_exclude), 1)
+        graph = pynutil.add_weight(graph, -0.0001) | default_graph
 
+        
         word_chars = pynini.closure(pynini.difference(NEMO_NOT_SPACE, symbols_to_exclude), 1)
         default_word_graph = word_chars
 
         alpha_word_graph = pynini.closure(NEMO_ALPHA, 1)
 
         graph = pynutil.add_weight(alpha_word_graph, -1.0) | default_word_graph
-
-        word = pynutil.insert("name: \"") + graph + pynutil.insert("\"")
+        self.graph = graph
+        word = pynutil.insert("name: \"") + self.graph + pynutil.insert("\"")
         self.fst = word.optimize()

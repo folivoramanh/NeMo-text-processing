@@ -22,6 +22,7 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     NEMO_CHAR,
     NEMO_WHITE_SPACE,
     NEMO_NOT_SPACE,
+    NEMO_DIGIT,
     GraphFst,
     delete_extra_space,
     delete_space,
@@ -34,6 +35,10 @@ from nemo_text_processing.text_normalization.vi.taggers.fraction import Fraction
 from nemo_text_processing.text_normalization.vi.taggers.measure import MeasureFst
 from nemo_text_processing.text_normalization.vi.taggers.money import MoneyFst
 from nemo_text_processing.text_normalization.vi.taggers.ordinal import OrdinalFst
+from nemo_text_processing.text_normalization.vi.taggers.roman import RomanFst
+from nemo_text_processing.text_normalization.vi.taggers.time import TimeFst
+from nemo_text_processing.text_normalization.vi.taggers.range import RangeFst
+# from nemo_text_processing.text_normalization.vi.taggers.telephone import TelephoneFst
 from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
 from nemo_text_processing.text_normalization.vi.taggers.whitelist import WhiteListFst
 from nemo_text_processing.text_normalization.vi.taggers.word import WordFst
@@ -44,6 +49,13 @@ from nemo_text_processing.text_normalization.vi.verbalizers.fraction import Frac
 from nemo_text_processing.text_normalization.vi.verbalizers.measure import MeasureFst as VMeasureFst
 from nemo_text_processing.text_normalization.vi.verbalizers.money import MoneyFst as VMoneyFst
 from nemo_text_processing.text_normalization.vi.verbalizers.ordinal import OrdinalFst as VOrdinalFst
+from nemo_text_processing.text_normalization.vi.verbalizers.roman import RomanFst as VRomanFst
+from nemo_text_processing.text_normalization.vi.verbalizers.time import TimeFst as VTimeFst
+from nemo_text_processing.text_normalization.vi.verbalizers.word import WordFst as VWordFst
+from nemo_text_processing.text_normalization.vi.verbalizers.range import RangeFst as VRangeFst
+from nemo_text_processing.text_normalization.vi.verbalizers.whitelist import WhiteListFst as VWhiteListFst
+
+
 from nemo_text_processing.utils.logging import logger
 
 
@@ -84,124 +96,114 @@ class ClassifyFst(GraphFst):
         else:
             logger.info(f"Creating Vietnamese Audio-based ClassifyFst grammars.")
 
-            start_time = time.time()
-            
-            # TAGGERS - Non-deterministic for audio-based TN (like English approach)
             cardinal = CardinalFst(deterministic=deterministic)
             cardinal_graph = cardinal.fst
-            logger.debug(f"cardinal: {time.time() - start_time: .2f}s -- {cardinal_graph.num_states()} nodes")
-
-            start_time = time.time()
-            punctuation = PunctuationFst(deterministic=deterministic)
-            punct_graph = punctuation.fst
-            logger.debug(f"punct: {time.time() - start_time: .2f}s -- {punct_graph.num_states()} nodes")
-
-            start_time = time.time()
+            punctuation = PunctuationFst(deterministic=True)
+            punct_graph = punctuation.graph
             whitelist = WhiteListFst(input_case=input_case, deterministic=deterministic)
             whitelist_graph = whitelist.fst
-            logger.debug(f"whitelist: {time.time() - start_time: .2f}s -- {whitelist_graph.num_states()} nodes")
-
-            start_time = time.time()
-            word_graph = WordFst(deterministic=deterministic).fst
-            logger.debug(f"word: {time.time() - start_time: .2f}s -- {word_graph.num_states()} nodes")
-
-            start_time = time.time()
-            date = DateFst(cardinal=cardinal, deterministic=deterministic)
-            date_graph = date.fst
-            logger.debug(f"date: {time.time() - start_time: .2f}s -- {date_graph.num_states()} nodes")
-
-            start_time = time.time()
-            decimal = DecimalFst(cardinal=cardinal, deterministic=deterministic)
-            decimal_graph = decimal.fst
-            logger.debug(f"decimal: {time.time() - start_time: .2f}s -- {decimal_graph.num_states()} nodes")
-
-            start_time = time.time()
+            word_graph = WordFst(deterministic=deterministic, punctuation=punctuation).graph
             ordinal = OrdinalFst(cardinal=cardinal, deterministic=deterministic)
             ordinal_graph = ordinal.fst
-            logger.debug(f"ordinal: {time.time() - start_time: .2f}s -- {ordinal_graph.num_states()} nodes")
-
-            start_time = time.time()
+            decimal = DecimalFst(cardinal=cardinal, deterministic=deterministic)
+            decimal_graph = decimal.fst
             fraction = FractionFst(cardinal=cardinal, deterministic=deterministic)
             fraction_graph = fraction.fst
-            logger.debug(f"fraction: {time.time() - start_time: .2f}s -- {fraction_graph.num_states()} nodes")
-
-            start_time = time.time()
+            date = DateFst(cardinal=cardinal, deterministic=deterministic)
+            date_graph = date.fst
+            roman = RomanFst(cardinal=cardinal, deterministic=deterministic)
+            roman_graph = roman.fst
+            time_fst = TimeFst(cardinal=cardinal, deterministic=deterministic)
+            time_graph = time_fst.fst
             money = MoneyFst(cardinal=cardinal, decimal=decimal, deterministic=deterministic)
             money_graph = money.fst
-            logger.debug(f"money: {time.time() - start_time: .2f}s -- {money_graph.num_states()} nodes")
-
-            start_time = time.time()
             measure = MeasureFst(cardinal=cardinal, decimal=decimal, fraction=fraction, deterministic=deterministic)
             measure_graph = measure.fst
-            logger.debug(f"measure: {time.time() - start_time: .2f}s -- {measure_graph.num_states()} nodes")
+            v_deterministic_cardinal = VCardinalFst(deterministic=True)
+            v_deterministic_date = VDateFst(deterministic=True)
+            date_final = pynini.compose(date_graph, v_deterministic_date.fst)
 
-            # VERBALIZERS - Compose with taggers like English
-            start_time = time.time()
+            v_decimal = VDecimalFst(v_deterministic_cardinal, deterministic=deterministic)
+            decimal_final = pynini.compose(decimal_graph, v_decimal.fst)
+
+            v_deterministic_time = VTimeFst(deterministic=True)
+            time_final = pynini.compose(time_graph, v_deterministic_time.fst)
+
+            v_deterministic_money = VMoneyFst(deterministic=True)
+            money_final = pynini.compose(money_graph, v_deterministic_money.fst)
+
+            v_deterministic_fraction = VFractionFst(deterministic=True)
+            v_deterministic_measure = VMeasureFst(
+                decimal=v_decimal, cardinal=v_deterministic_cardinal, fraction=v_deterministic_fraction, deterministic=deterministic
+            )
+            measure_final = pynini.compose(measure_graph, v_deterministic_measure.fst)
+
+            # Create range graph
+            range_fst = RangeFst(
+                time=time_final,
+                date=date_final,
+                decimal=decimal_final,
+                money=money_final,
+                measure=measure_final,
+                deterministic=deterministic,
+            )
+            range_graph = range_fst.fst
+
             v_cardinal = VCardinalFst(deterministic=deterministic)
             v_cardinal_graph = v_cardinal.fst
-            logger.debug(f"v_cardinal: {time.time() - start_time: .2f}s -- {v_cardinal_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_date = VDateFst(deterministic=deterministic)
             v_date_graph = v_date.fst
-            logger.debug(f"v_date: {time.time() - start_time: .2f}s -- {v_date_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_decimal = VDecimalFst(cardinal=v_cardinal, deterministic=deterministic)
             v_decimal_graph = v_decimal.fst
-            logger.debug(f"v_decimal: {time.time() - start_time: .2f}s -- {v_decimal_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_ordinal = VOrdinalFst(deterministic=deterministic)
             v_ordinal_graph = v_ordinal.fst
-            logger.debug(f"v_ordinal: {time.time() - start_time: .2f}s -- {v_ordinal_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_fraction = VFractionFst(deterministic=deterministic)
             v_fraction_graph = v_fraction.fst
-            logger.debug(f"v_fraction: {time.time() - start_time: .2f}s -- {v_fraction_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_money = VMoneyFst(deterministic=deterministic)
             v_money_graph = v_money.fst
-            logger.debug(f"v_money: {time.time() - start_time: .2f}s -- {v_money_graph.num_states()} nodes")
-
-            start_time = time.time()
             v_measure = VMeasureFst(cardinal=v_cardinal, decimal=v_decimal, fraction=v_fraction, deterministic=deterministic)
             v_measure_graph = v_measure.fst
-            logger.debug(f"v_measure: {time.time() - start_time: .2f}s -- {v_measure_graph.num_states()} nodes")
-
-            # COMPOSE TAGGERS + VERBALIZERS (like English approach)
-            start_time = time.time()
+            v_word = VWordFst(deterministic=deterministic)
+            v_word_graph = v_word.fst
+            v_roman = VRomanFst(deterministic=deterministic)
+            v_roman_graph = v_roman.fst
+            v_range = VRangeFst(deterministic=deterministic)
+            v_range_graph = v_range.fst
+            v_time = VTimeFst(deterministic=deterministic)
+            v_time_graph = v_time.fst
+            v_whitelist = VWhiteListFst(deterministic=deterministic)
+            v_whitelist_graph = v_whitelist.fst
+            sem_w = 1
+            word_w = 100
+            punct_w = 2
             classify_and_verbalize = (
-                pynutil.add_weight(whitelist_graph, 1.01)
-                | pynutil.add_weight(pynini.compose(cardinal_graph, v_cardinal_graph), 1.1)
-                | pynutil.add_weight(pynini.compose(date_graph, v_date_graph), 1.09)
-                | pynutil.add_weight(pynini.compose(decimal_graph, v_decimal_graph), 1.08)
-                | pynutil.add_weight(pynini.compose(ordinal_graph, v_ordinal_graph), 1.07)
-                | pynutil.add_weight(pynini.compose(fraction_graph, v_fraction_graph), 1.06)
-                | pynutil.add_weight(pynini.compose(money_graph, v_money_graph), 1.05)
-                | pynutil.add_weight(pynini.compose(measure_graph, v_measure_graph), 1.04)
-                | pynutil.add_weight(word_graph, 100)
+                pynutil.add_weight(pynini.compose(whitelist_graph, v_whitelist_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(time_graph, v_time_graph), sem_w) 
+                | pynutil.add_weight(pynini.compose(decimal_graph, v_decimal_graph), sem_w)  
+                | pynutil.add_weight(pynini.compose(measure_graph, v_measure_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(cardinal_graph, v_cardinal_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(ordinal_graph, v_ordinal_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(fraction_graph, v_fraction_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(money_graph, v_money_graph), sem_w)
+                | pynutil.add_weight(word_graph, word_w)
+                | pynutil.add_weight(pynini.compose(date_graph, v_date_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(roman_graph, v_roman_graph), word_w)
+                | pynutil.add_weight(pynini.compose(range_graph, v_range_graph), sem_w)
             ).optimize()
-            logger.debug(f"classify_and_verbalize: {time.time() - start_time: .2f}s -- {classify_and_verbalize.num_states()} nodes")
 
-            # PUNCTUATION handling
-            punct_only = pynutil.add_weight(punct_graph, 2.1)
+            punct_only = pynutil.add_weight(punct_graph, weight=punct_w)
             punct = pynini.closure(
                 pynini.compose(pynini.closure(NEMO_WHITE_SPACE, 1), delete_extra_space)
                 | (pynutil.insert(" ") + punct_only),
                 1,
             )
 
-            # TOKEN + PUNCTUATION composition (like English)
             token_plus_punct = (
                 pynini.closure(punct + pynutil.insert(" "))
                 + classify_and_verbalize
                 + pynini.closure(pynutil.insert(" ") + punct)
             )
 
-            # FINAL GRAPH construction
             graph = token_plus_punct + pynini.closure(
                 (
                     pynini.compose(pynini.closure(NEMO_WHITE_SPACE, 1), delete_extra_space)
@@ -213,7 +215,6 @@ class ClassifyFst(GraphFst):
             graph |= punct_only + pynini.closure(punct)
             graph = delete_space + graph + delete_space
 
-            # Simple remove extra spaces using existing constants
             remove_extra_spaces = pynini.closure(NEMO_NOT_SPACE, 1) + pynini.closure(
                 delete_extra_space + pynini.closure(NEMO_NOT_SPACE, 1)
             )
@@ -228,3 +229,8 @@ class ClassifyFst(GraphFst):
 
             if far_file:
                 generator_main(far_file, {"tokenize_and_classify": self.fst})
+
+        # to remove normalization options that still contain digits and some special symbols
+        # e.g., "P&E" -> {P and E, P&E}, "P & E" will be removed from the list of normalization options
+        no_digits = pynini.closure(pynini.difference(NEMO_CHAR, pynini.union(NEMO_DIGIT, "&")))
+        self.fst_no_digits = pynini.compose(self.fst, no_digits).optimize()
