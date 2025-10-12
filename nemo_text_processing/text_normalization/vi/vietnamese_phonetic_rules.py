@@ -35,7 +35,7 @@ class VietnamesePhoneticRules:
         # Connector words for different contexts
         # Fixed: "lẻ/linh" only appear once, to replace zero positions
         self.connectors = {
-            "zero_after_hundred": ["lẻ", "không", "linh"],
+            "zero_after_hundred": ["lẻ", "linh"],  # Removed "không" - not appropriate as connector
             "magnitude_separators": ["nghìn", "ngàn"],  # thousand alternatives
             "tens_formats": ["mười", "mươi"]  # colloquial vs formal
         }
@@ -276,9 +276,14 @@ class VietnamesePhoneticRules:
         if len(components) < 2:
             return False
         
-        # Check if the smaller magnitude component starts with zero-like pattern
+        # Check if the smaller magnitude component indicates a zero in tens place
         smaller_comp = components[1]
-        return smaller_comp["value"] < 100  # Simplified check
+        value = smaller_comp["value"]
+        
+        # Only has zero pattern if value is single digit (0-9)
+        # Examples: 2004 (value=4), 2005 (value=5) → True
+        # Counter-examples: 2024 (value=24), 2034 (value=34) → False
+        return value < 10
     
     def generate_alternatives(self, number_str: str, context: str = "general") -> List[str]:
         """Enhanced generate_alternatives using magnitude system"""

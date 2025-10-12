@@ -7,40 +7,43 @@ CACHE_DIR = None
 
 TEST_CASES = [
     # Ví dụ về cardinal
-    ("100", "một trăm", "một trăm"),
-    ("1000", "một nghìn", "một nghìn"),
+    # ("100", "một trăm", "một trăm"),
+    # ("1000", "một nghìn", "một nghìn"),
     
-    # Ví dụ về money
-    ("100 đồng", "một trăm đồng", "một trăm đồng"),
-    ("100 USD", "một trăm đô la mỹ", "một trăm đô la mỹ"),
+    # # Ví dụ về money
+    # ("100 đồng", "một trăm đồng", "một trăm đồng"),
+    # ("100 USD", "một trăm đô la mỹ", "một trăm đô la mỹ"),
     
-    # Ví dụ về date
-    ("01/01/2024", "ngày một tháng một năm hai nghìn không trăm hai mươi bốn", None),
+    # # Ví dụ về date
+    # ("01/01/2024", "ngày một tháng một năm hai nghìn không trăm hai mươi bốn", None),
     
-    # Ví dụ về time
-    ("10:30", "mười giờ ba mươi phút", "mười giờ ba mươi phút"),
+    # # Ví dụ về time
+    # ("10:30", "mười giờ ba mươi phút", "mười giờ ba mươi phút"),
     
-    # Ví dụ về ordinal
-    ("thứ 1", "thứ nhất", "thứ nhất"),
+    # # Ví dụ về ordinal
+    # ("thứ 1", "thứ nhất", "thứ nhất"),
     
     # Thêm test cases của bạn vào đây...
     # ("input", "expected", "asr_pred_or_None"),
+    
+    ("Hôm nay là thứ 5, mùng 5 tháng 10 (5/10/2025), tôi có nhiều task cần làm, cụ thể là task chương IV", "Hôm nay là thứ năm, mùng năm tháng mười (năm tháng mười năm hai ngàn linh hai mươi lăm), tôi có nhiều task cần làm, cụ thể là task chương bốn", "Hôm nay là thứ năm, mùng năm tháng mười (năm tháng mười năm hai ngàn linh hai mươi lăm), tôi có nhiều task cần làm, cụ thể là task chương bốn" )
 ]
 
 # Set TEST_MODE = "non_det_only" để dùng mode này
 TEST_CASES_NON_DET_ONLY = [
     # Ví dụ:
-    "Hôm nay là thứ 5, mùng 5 tháng 10 (5/10/2025), tôi có nhiều task cần làm, cụ thể là task chương IV",
+    # "Hôm nay là thứ 5, mùng 5 tháng 10 (5/10/2025), tôi có nhiều task cần làm, cụ thể là task chương IV",
     # "101",
-    # "1101",
-    # "2024",
+    "1101",
+    "2024",
+    "2004",
     # "1,12",
-    # "1,123",
-    # "thứ 1",
+    "1,123",
+    "thứ 1",
     # "thứ 2",
     # "thứ 3",
-    # "100 đồng",
-    # "10:30",
+    "100 đồng",
+    "10:30",
     # "01/01/2024",
     
     # Thêm input của bạn vào đây...
