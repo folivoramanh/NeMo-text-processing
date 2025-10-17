@@ -28,6 +28,7 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     delete_space,
     generator_main,
 )
+from nemo_text_processing.text_normalization.vi.taggers.abbreviation import AbbreviationFst
 from nemo_text_processing.text_normalization.vi.taggers.cardinal import CardinalFst
 from nemo_text_processing.text_normalization.vi.taggers.date import DateFst
 from nemo_text_processing.text_normalization.vi.taggers.decimal import DecimalFst
@@ -36,12 +37,14 @@ from nemo_text_processing.text_normalization.vi.taggers.measure import MeasureFs
 from nemo_text_processing.text_normalization.vi.taggers.money import MoneyFst
 from nemo_text_processing.text_normalization.vi.taggers.ordinal import OrdinalFst
 from nemo_text_processing.text_normalization.vi.taggers.roman import RomanFst
+from nemo_text_processing.text_normalization.vi.taggers.serial import SerialFst
 from nemo_text_processing.text_normalization.vi.taggers.time import TimeFst
 from nemo_text_processing.text_normalization.vi.taggers.range import RangeFst
-# from nemo_text_processing.text_normalization.vi.taggers.telephone import TelephoneFst
+from nemo_text_processing.text_normalization.vi.taggers.telephone import TelephoneFst
 from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
 from nemo_text_processing.text_normalization.vi.taggers.whitelist import WhiteListFst
 from nemo_text_processing.text_normalization.vi.taggers.word import WordFst
+from nemo_text_processing.text_normalization.vi.verbalizers.abbreviation import AbbreviationFst as VAbbreviationFst
 from nemo_text_processing.text_normalization.vi.verbalizers.cardinal import CardinalFst as VCardinalFst
 from nemo_text_processing.text_normalization.vi.verbalizers.date import DateFst as VDateFst
 from nemo_text_processing.text_normalization.vi.verbalizers.decimal import DecimalFst as VDecimalFst
@@ -50,9 +53,11 @@ from nemo_text_processing.text_normalization.vi.verbalizers.measure import Measu
 from nemo_text_processing.text_normalization.vi.verbalizers.money import MoneyFst as VMoneyFst
 from nemo_text_processing.text_normalization.vi.verbalizers.ordinal import OrdinalFst as VOrdinalFst
 from nemo_text_processing.text_normalization.vi.verbalizers.roman import RomanFst as VRomanFst
+from nemo_text_processing.text_normalization.vi.verbalizers.serial import SerialFst as VSerialFst
 from nemo_text_processing.text_normalization.vi.verbalizers.time import TimeFst as VTimeFst
 from nemo_text_processing.text_normalization.vi.verbalizers.word import WordFst as VWordFst
 from nemo_text_processing.text_normalization.vi.verbalizers.range import RangeFst as VRangeFst
+from nemo_text_processing.text_normalization.vi.verbalizers.telephone import TelephoneFst as VTelephoneFst
 from nemo_text_processing.text_normalization.vi.verbalizers.whitelist import WhiteListFst as VWhiteListFst
 
 
@@ -149,6 +154,14 @@ class ClassifyFst(GraphFst):
             )
             range_graph = range_fst.fst
 
+            # Create serial and abbreviation graphs
+            serial = SerialFst(cardinal=cardinal, ordinal=ordinal, deterministic=deterministic)
+            serial_graph = serial.fst
+            abbreviation = AbbreviationFst(whitelist=whitelist, deterministic=deterministic)
+            abbreviation_graph = abbreviation.fst
+            telephone = TelephoneFst(cardinal=cardinal, deterministic=deterministic)
+            telephone_graph = telephone.fst
+
             v_cardinal = VCardinalFst(deterministic=deterministic)
             v_cardinal_graph = v_cardinal.fst
             v_date = VDateFst(deterministic=deterministic)
@@ -173,6 +186,12 @@ class ClassifyFst(GraphFst):
             v_time_graph = v_time.fst
             v_whitelist = VWhiteListFst(deterministic=deterministic)
             v_whitelist_graph = v_whitelist.fst
+            v_serial = VSerialFst(deterministic=deterministic)
+            v_serial_graph = v_serial.fst
+            v_abbreviation = VAbbreviationFst(deterministic=deterministic)
+            v_abbreviation_graph = v_abbreviation.fst
+            v_telephone = VTelephoneFst(deterministic=deterministic)
+            v_telephone_graph = v_telephone.fst
             sem_w = 1
             word_w = 100
             punct_w = 2
@@ -186,9 +205,12 @@ class ClassifyFst(GraphFst):
                 | pynutil.add_weight(pynini.compose(fraction_graph, v_fraction_graph), sem_w)
                 | pynutil.add_weight(pynini.compose(money_graph, v_money_graph), sem_w)
                 | pynutil.add_weight(word_graph, word_w)
-                | pynutil.add_weight(pynini.compose(date_graph, v_date_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(date_graph, v_date_graph), sem_w - 0.01)
                 | pynutil.add_weight(pynini.compose(roman_graph, v_roman_graph), word_w)
                 | pynutil.add_weight(pynini.compose(range_graph, v_range_graph), sem_w)
+                | pynutil.add_weight(pynini.compose(serial_graph, v_serial_graph), sem_w + 0.1001) # should be higher than the rest of the classes
+                | pynutil.add_weight(pynini.compose(abbreviation_graph, v_abbreviation_graph), word_w)
+                | pynutil.add_weight(pynini.compose(telephone_graph, v_telephone_graph), sem_w)
             ).optimize()
 
             punct_only = pynutil.add_weight(punct_graph, weight=punct_w)

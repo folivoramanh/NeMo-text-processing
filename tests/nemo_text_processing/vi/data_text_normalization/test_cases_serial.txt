@@ -1,0 +1,22 @@
+c325b~c ba hai năm b
+a1b2c3~a một b hai c ba
+covid-19~covid mười chín
+iso-9001~iso chín không không một
+abc-123-xyz~abc một hai ba xyz
+12-34-56~mười hai ba mươi tư năm mươi sáu
+0123abc~không một hai ba abc
+v2.0.1~v hai chấm không chấm một
+29A-12345~hai chín A một hai ba bốn năm
+x-1000~x một không không không
+code#123~code thăng một hai ba
+test@123~test a còng một hai ba
+ABC123~ABC một hai ba
+XYZ-789~XYZ bảy tám chín
+x^2~x bình phương
+y^3~y lập phương
+iphone12~iphone mười hai
+galaxy-s21~galaxy s hai một
+iso/iec-27001~iso iec hai bảy không không một
+abc-123-def-456~abc một hai ba def bốn năm sáu
+a-1~a một
+1-a~một a

@@ -32,19 +32,19 @@ TEST_CASES = [
 # Set TEST_MODE = "non_det_only" để dùng mode này
 TEST_CASES_NON_DET_ONLY = [
     # Ví dụ:
-    # "Hôm nay là thứ 5, mùng 5 tháng 10 (5/10/2025), tôi có nhiều task cần làm, cụ thể là task chương IV",
-    # "101",
+    "Hôm nay là thứ 5, mùng 5 tháng 10 (15/10/2025), tôi có nhiều task cần làm, cụ thể là task chương IV",
+    "101",
     "1101",
     "2024",
     "2004",
-    # "1,12",
+    "1,12",
     "1,123",
     "thứ 1",
-    # "thứ 2",
-    # "thứ 3",
+    "thứ 2",
+    "thứ 3",
     "100 đồng",
     "10:30",
-    # "01/01/2024",
+    "01/01/2024",
     
     # Thêm input của bạn vào đây...
 ]
@@ -58,7 +58,7 @@ TEST_MODE = "non_det_only"
 N_TAGGED = 30
 
 # In thông tin chi tiết khi test
-VERBOSE = False
+VERBOSE = True
 
 
 def init_normalizers():

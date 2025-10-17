@@ -1,0 +1,24 @@
+a.bc@gmail.com~a chấm b c a còng g mail chấm com
+a@hotmail.de~a a còng hotmail chấm de
+a@hotmail.fr~a a còng hotmail chấm fr
+a@hotmail.it~a a còng hotmail chấm it
+a@aol.it~a a còng aol chấm it
+a@msn.it~a a còng msn chấm it
+cdf@abc.edu~c d f a còng a b c chấm edu
+abc@gmail.abc~a b c a còng g mail chấm a b c
+abc@abc.com~a b c a còng a b c chấm com
+asdf123@abc.com~a s d f một hai ba a còng a b c chấm com
+a1b2@abc.com~a một b hai a còng a b c chấm com
+ab3.sdd.3@gmail.com~a b ba chấm s d d chấm ba a còng g mail chấm com
+email is abc1@gmail.com~email is a b c một a còng g mail chấm com
+abs@nvidia.com~a b s a còng n vidia chấm com
+nvidia.com~n vidia chấm com
+test.com~test chấm com
+test.abc~test chấm abc
+www.ourdailynews.com~www chấm ourdailynews chấm com
+http://www.ourdailynews.com~http hai chấm sẹc sẹc www chấm ourdailynews chấm com
+https://www.ourdailynews.com~https hai chấm sẹc sẹc www chấm ourdailynews chấm com
+www.ourdailynews.com/123~www chấm ourdailynews chấm com sẹc một hai ba
+upgrade/update~upgrade sẹc update
+upgrade / update~upgrade sẹc update
+upgrade/update/downgrade~upgrade sẹc update sẹc downgrade

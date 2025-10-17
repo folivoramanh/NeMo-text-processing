@@ -24,9 +24,11 @@ from nemo_text_processing.text_normalization.vi.graph_utils import (
     delete_space,
     generator_main,
 )
+from nemo_text_processing.text_normalization.vi.taggers.abbreviation import AbbreviationFst
 from nemo_text_processing.text_normalization.vi.taggers.cardinal import CardinalFst
 from nemo_text_processing.text_normalization.vi.taggers.date import DateFst
 from nemo_text_processing.text_normalization.vi.taggers.decimal import DecimalFst
+from nemo_text_processing.text_normalization.vi.taggers.electronic import ElectronicFst
 from nemo_text_processing.text_normalization.vi.taggers.fraction import FractionFst
 from nemo_text_processing.text_normalization.vi.taggers.measure import MeasureFst
 from nemo_text_processing.text_normalization.vi.taggers.money import MoneyFst
@@ -34,6 +36,8 @@ from nemo_text_processing.text_normalization.vi.taggers.ordinal import OrdinalFs
 from nemo_text_processing.text_normalization.vi.taggers.punctuation import PunctuationFst
 from nemo_text_processing.text_normalization.vi.taggers.range import RangeFst
 from nemo_text_processing.text_normalization.vi.taggers.roman import RomanFst
+from nemo_text_processing.text_normalization.vi.taggers.serial import SerialFst
+from nemo_text_processing.text_normalization.vi.taggers.telephone import TelephoneFst
 from nemo_text_processing.text_normalization.vi.taggers.time import TimeFst
 from nemo_text_processing.text_normalization.vi.taggers.whitelist import WhiteListFst
 from nemo_text_processing.text_normalization.vi.taggers.word import WordFst
@@ -116,6 +120,26 @@ class ClassifyFst(GraphFst):
             logger.debug(f"roman: {time.time() - start_time: .2f}s -- {roman_graph.num_states()} nodes")
 
             start_time = time.time()
+            telephone = TelephoneFst(cardinal=cardinal, deterministic=deterministic)
+            telephone_graph = telephone.fst
+            logger.debug(f"telephone: {time.time() - start_time: .2f}s -- {telephone_graph.num_states()} nodes")
+
+            start_time = time.time()
+            electronic = ElectronicFst(deterministic=deterministic)
+            electronic_graph = electronic.fst
+            logger.debug(f"electronic: {time.time() - start_time: .2f}s -- {electronic_graph.num_states()} nodes")
+
+            start_time = time.time()
+            serial = SerialFst(cardinal=cardinal, ordinal=ordinal, deterministic=deterministic)
+            serial_graph = serial.fst
+            logger.debug(f"serial: {time.time() - start_time: .2f}s -- {serial_graph.num_states()} nodes")
+
+            start_time = time.time()
+            abbreviation = AbbreviationFst(whitelist=whitelist, deterministic=deterministic)
+            abbreviation_graph = abbreviation.fst
+            logger.debug(f"abbreviation: {time.time() - start_time: .2f}s -- {abbreviation_graph.num_states()} nodes")
+
+            start_time = time.time()
             time_fst = TimeFst(cardinal=cardinal, deterministic=deterministic)
             time_graph = time_fst.fst
             logger.debug(f"time: {time.time() - start_time: .2f}s -- {time_graph.num_states()} nodes")
@@ -174,6 +198,10 @@ class ClassifyFst(GraphFst):
                 | pynutil.add_weight(fraction_graph, 1.1)
                 | pynutil.add_weight(time_graph, 1.1)
                 | pynutil.add_weight(measure_graph, 1.1)
+                | pynutil.add_weight(telephone_graph, 1.1)
+                | pynutil.add_weight(electronic_graph, 1.11)
+                | pynutil.add_weight(serial_graph, 1.12)
+                # | pynutil.add_weight(abbreviation_graph, 1.1)
                 | pynutil.add_weight(word_graph, 100)
                 | pynutil.add_weight(roman_graph, 101)
             )

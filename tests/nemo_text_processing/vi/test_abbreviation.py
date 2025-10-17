@@ -1,4 +1,4 @@
-# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import pytest
 from parameterized import parameterized
 
 from ..utils import CACHE_DIR, parse_test_case_file
 
 try:
-    from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
     from nemo_text_processing.text_normalization.normalize import Normalizer
 
     PYNINI_AVAILABLE = True
@@ -27,25 +25,21 @@ except (ImportError, ModuleNotFoundError):
     PYNINI_AVAILABLE = False
 
 
-class TestTelephone:
-    inverse_normalizer = (
-        InverseNormalizer(lang='vi', cache_dir=CACHE_DIR, overwrite_cache=False) if PYNINI_AVAILABLE else None
+class TestAbbreviation:
+    normalizer = (
+        Normalizer(lang='vi', input_case='cased', cache_dir=CACHE_DIR, overwrite_cache=False)
+        if PYNINI_AVAILABLE
+        else None
     )
-    normalizer = Normalizer(input_case='cased', lang='vi', cache_dir=CACHE_DIR, overwrite_cache=False)
-    @parameterized.expand(parse_test_case_file('vi/data_inverse_text_normalization/test_cases_telephone.txt'))
+
+    @parameterized.expand(parse_test_case_file('vi/data_text_normalization/test_cases_abbreviation.txt'))
     @pytest.mark.skipif(
         not PYNINI_AVAILABLE,
         reason="`pynini` not installed, please install via nemo_text_processing/pynini_install.sh",
     )
     @pytest.mark.run_only_on('CPU')
     @pytest.mark.unit
-    def test_denorm(self, test_input, expected):
-        pred = self.inverse_normalizer.inverse_normalize(test_input, verbose=False)
-        assert pred == expected
-        
-    @parameterized.expand(parse_test_case_file("vi/data_text_normalization/test_cases_telephone.txt"))
-    @pytest.mark.run_only_on('CPU')
     def test_norm(self, test_input, expected):
         pred = self.normalizer.normalize(test_input, verbose=False)
-        assert pred == expected, f"input: {test_input} assert {pred} == {expected}"
+        assert pred == expected
 

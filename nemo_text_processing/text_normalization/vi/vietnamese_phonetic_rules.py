@@ -616,9 +616,14 @@ class VietnamesePhoneticRules:
         if num == 11:
             return ["mười một"]
         
-        # Generate additional alternatives for specific teens (except 11)
+        # For 15: ONLY use "mười lăm", never "mười năm" 
+        # "năm" is a year word, not appropriate for day 15
+        if num == 15:
+            return ["mười lăm"]
+        
+        # Generate additional alternatives for specific teens (except 11, 15)
         ones_digit = num % 10
-        if ones_digit in [1, 4, 5]:  # Digits with alternatives
+        if ones_digit in [1, 4] and num != 15:  # Exclude 15 from alternatives
             base_forms = ["mười"]
             digit_alts = self._get_digit_alternatives_in_context(ones_digit, "after_tens")
             
@@ -628,71 +633,7 @@ class VietnamesePhoneticRules:
                     if alt not in alternatives:
                         alternatives.append(alt)
         
-        # Special handling for 15: should have both "mười lăm" and "mười năm"
-        if num == 15:
-            if "mười năm" not in alternatives:
-                alternatives.append("mười năm")
-        
         return alternatives if alternatives else [teen_str]
-
-    def generate_date_day_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
-        """Generate alternatives for date days - NO automatic prefixes to avoid duplicates"""
-        # Always return base alternatives without any automatic prefix
-        # Prefixes should only come from input patterns, not generated here
-        base_alternatives = self.generate_alternatives(number_str, "general")
-        
-        if include_prefix:
-            day_num = int(number_str)
-            
-            # Only "mùng", "mồng" prefixes for days 1-10, but ONLY if explicitly requested
-            # This is used by prefix-preserving patterns, not standard patterns
-            if 1 <= day_num <= 10:
-                day_prefixes_small = ["mùng", "mồng"]
-                prefixed_alternatives = []
-                for prefix in day_prefixes_small:
-                    for base_alt in base_alternatives:
-                        prefixed_alternatives.append(f"{prefix} {base_alt}")
-                
-                # Return ONLY prefixed alternatives when include_prefix=True
-                # This prevents mixing prefixed and non-prefixed in same FST
-                return self._remove_duplicates(prefixed_alternatives)
-        
-        # For include_prefix=False or days > 10, return base alternatives only
-        return self._remove_duplicates(base_alternatives)
-
-    def generate_date_month_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
-        """Generate alternatives for date months with Vietnamese prefixes"""
-        alternatives = []
-        
-        # Get basic number alternatives
-        base_alternatives = self.generate_alternatives(number_str, "general")
-        
-        if include_prefix:
-            # Add "tháng" prefix
-            for base_alt in base_alternatives:
-                alternatives.append(f"tháng {base_alt}")
-        else:
-            # No prefix, just return base alternatives
-            alternatives.extend(base_alternatives)
-        
-        return self._remove_duplicates(alternatives)
-
-    def generate_date_year_alternatives(self, number_str: str, include_prefix: bool = True) -> List[str]:
-        """Generate alternatives for date years with Vietnamese prefixes"""
-        alternatives = []
-        
-        # Get basic number alternatives
-        base_alternatives = self.generate_alternatives(number_str, "general")
-        
-        if include_prefix:
-            # Add "năm" prefix
-            for base_alt in base_alternatives:
-                alternatives.append(f"năm {base_alt}")
-        else:
-            # No prefix, just return base alternatives
-            alternatives.extend(base_alternatives)
-        
-        return self._remove_duplicates(alternatives)
 
     def generate_ordinal_alternatives(self, number_str: str) -> List[str]:
         """Generate alternatives for ordinal numbers using TSV data"""

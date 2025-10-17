@@ -391,7 +391,9 @@ class Normalizer:
             # do post-processing based on Moses detokenizer
             output = self.moses_detokenizer.detokenize([output], unescape=False)
             output = post_process_punct(input=original_text, normalized_text=output)
-        return output
+        
+        # Strip to remove leading/trailing spaces after all post-processing
+        return output.strip()
 
     def normalize_line(
         self,

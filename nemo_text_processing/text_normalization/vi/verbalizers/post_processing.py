@@ -51,24 +51,14 @@ class PostProcessingFst:
     def get_vietnamese_punct_config(self) -> Dict[str, List[str]]:
         """
         Returns Vietnamese-specific punctuation configuration.
-        This method can be easily modified or extended for different Vietnamese punctuation rules.
+        Only keeps sentence-connecting and sentence-ending punctuation: , . ? !
+        All other punctuation will be removed and replaced with space.
         """
         return {
+            # Punctuation to keep (sentence connectors and enders)
+            'keep_punct': [",", ".", "!", "?"],
             # Punctuation that should not have space before them
-            'no_space_before': [",", ".", "!", "?", ":", ";", ")", r"\]", "}"],
-            # Punctuation that should not have space after them
-            'no_space_after': ["(", r"\[", "{"],
-            # Punctuation that can have space before them (exceptions)
-            'allow_space_before': ["&", "-", "—", "–", "(", r"\[", "{", "\"", "'", "«", "»"],
-            # Special Vietnamese punctuation handling
-            'vietnamese_special': {
-                # Vietnamese quotation marks
-                'quotes': ["\"", "'", "«", "»", """, """, "'", "'"],
-                # Vietnamese dashes and separators
-                'dashes': ["-", "—", "–"],
-                # Vietnamese brackets
-                'brackets': ["(", ")", r"\[", r"\]", "{", "}"],
-            },
+            'no_space_before': [",", ".", "!", "?"],
         }
 
     def set_punct_dict(self):
@@ -104,36 +94,94 @@ class PostProcessingFst:
         """
         Returns graph to post process punctuation marks for Vietnamese.
 
-        Uses dynamic configuration for flexible punctuation handling.
-        Vietnamese punctuation spacing rules are defined in get_vietnamese_punct_config().
+        Keeps only: , . ? !
+        Removes all other punctuation and replaces with space.
+        Collapses multiple spaces and strips leading/trailing spaces.
         """
-        # Get dynamic punctuation configuration
+        # Get configuration
         punct_config = self.get_vietnamese_punct_config()
-
-        # Extract configuration
+        keep_punct = punct_config['keep_punct']
         no_space_before_punct = punct_config['no_space_before']
-        no_space_after_punct = punct_config['no_space_after']
 
-        # Create FSTs for punctuation rules
-        no_space_before_punct_fst = pynini.union(*no_space_before_punct)
-        no_space_after_punct_fst = pynini.union(*no_space_after_punct)
-
+        # Create FST for kept punctuation
+        kept_punct_fst = pynini.union(*keep_punct)
+        
         delete_space = pynutil.delete(" ")
+        space_fst = pynini.accep(" ")
 
-        # Rule 1: Remove space before punctuation (primary rule)
+        # Rule 1: Remove space before kept punctuation (primary rule)
+        # " ," -> ",", " ." -> ".", etc.
         remove_space_before = pynini.cdrewrite(
-            delete_space + no_space_before_punct_fst,  # " ," -> ","
-            "",  # any context before
-            "",  # any context after
+            delete_space + kept_punct_fst,
+            "",
+            "",
             NEMO_SIGMA,
         ).optimize()
 
-        # Rule 2: Remove space after opening brackets
-        remove_space_after = pynini.cdrewrite(
-            no_space_after_punct_fst + delete_space, "", "", NEMO_SIGMA  # "( " -> "("
+        # Rule 2: Replace all other punctuation with space
+        # List of safe punctuation characters to remove (excluding kept ones: , . ? !)
+        # Only include characters that can be safely compiled by pynini
+        punct_to_remove = [
+            ":", ";", 
+            "(", ")",  # brackets
+            "-", "_",  # dashes
+            "+", "=", "*", "/", "|",  # math/operators
+            "@", "#", "$", "%", "^", "&",  # symbols
+            "~", "`", '"', "'",  # quotes
+        ]
+        
+        # Build replacement FST: each punct -> space
+        # Use try-except to skip problematic characters
+        punct_replacements = []
+        for punct_char in punct_to_remove:
+            try:
+                punct_replacements.append(pynini.cross(punct_char, " "))
+            except:
+                # Skip characters that can't be compiled
+                continue
+        
+        # Union all replacements if any were successfully created
+        if punct_replacements:
+            punct_to_space = pynini.union(*punct_replacements).optimize()
+            
+            # Apply replacement rule
+            replace_punct_with_space = pynini.cdrewrite(
+                punct_to_space,
+                "",
+                "",
+                NEMO_SIGMA
+            ).optimize()
+        else:
+            # No replacements, use identity
+            replace_punct_with_space = pynini.Fst()
+
+        # Rule 3: Collapse multiple spaces into single space
+        # "  " -> " ", "   " -> " ", etc.
+        double_space = space_fst + space_fst
+        collapse_spaces = pynini.cdrewrite(
+            pynini.cross(double_space, " "),  # two spaces -> one space
+            "",
+            "",
+            NEMO_SIGMA
         ).optimize()
 
-        # Combine the two main rules
-        graph = pynini.compose(remove_space_before, remove_space_after)
+        # Combine all rules in order:
+        # 1. Replace unwanted punct with space
+        # 2. Remove space before kept punct
+        # 3. Collapse multiple spaces (applied multiple times to handle any number of spaces)
+        if punct_replacements:
+            graph = pynini.compose(
+                pynini.compose(
+                    replace_punct_with_space,
+                    remove_space_before
+                ),
+                pynini.compose(collapse_spaces, collapse_spaces)  # Apply twice to handle 3+ spaces
+            )
+        else:
+            # No punct replacement, just use other rules
+            graph = pynini.compose(
+                remove_space_before,
+                pynini.compose(collapse_spaces, collapse_spaces)
+            )
 
         return graph.optimize()

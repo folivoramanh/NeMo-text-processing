@@ -271,6 +271,9 @@ class NormalizerWithAudio(Normalizer):
         if deterministic_form is not None:
             normalized_texts.append(deterministic_form)
 
+        # Strip and deduplicate after all post-processing (WFST + punct_post_process)
+        # This removes duplicates created by punctuation removal and ensures no leading/trailing spaces
+        normalized_texts = [text.strip() for text in normalized_texts]
         normalized_texts = set(normalized_texts)
         return normalized_texts
 

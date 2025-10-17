@@ -39,24 +39,11 @@ class DateFst(GraphFst):
 
         quoted_content = pynini.closure(NEMO_NOT_QUOTE)
 
-        day_expr = pynutil.delete("day: \"") + quoted_content + pynutil.delete("\"")
-        month_expr = pynutil.delete("month: \"") + quoted_content + pynutil.delete("\"")
-        year_expr = pynutil.delete("year: \"") + quoted_content + pynutil.delete("\"")
+        day_with_prefix = pynutil.delete("day: \"") + quoted_content + pynutil.delete("\"")
+        month_with_prefix = pynutil.delete("month: \"") + quoted_content + pynutil.delete("\"")
+        year_with_prefix = pynutil.delete("year: \"") + quoted_content + pynutil.delete("\"")
         era_expr = pynutil.delete("era: \"") + quoted_content + pynutil.delete("\"")
         ordinal_expr = pynutil.delete("ordinal: \"") + quoted_content + pynutil.delete("\"")
-
-        # For non-deterministic mode, expressions may already contain prefixes from tagger
-        if not deterministic:
-            # Use expressions as-is since tagger handles prefixes
-            day_with_prefix = day_expr
-            month_with_prefix = month_expr  
-            year_with_prefix = year_expr
-        else:
-            # Deterministic mode - DON'T add prefixes automatically to avoid duplicates
-            # Let the tagger handle prefixes to maintain consistency
-            day_with_prefix = day_expr
-            month_with_prefix = month_expr
-            year_with_prefix = year_expr
 
         ordinal_with_prefix = pynutil.insert("năm thứ ") + ordinal_expr
 

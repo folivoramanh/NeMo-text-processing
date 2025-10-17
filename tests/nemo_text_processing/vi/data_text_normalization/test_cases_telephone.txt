@@ -1,0 +1,18 @@
+0912345678~không chín một hai, ba bốn năm, sáu bảy tám
++84912345678~cộng tám bốn, chín một hai, ba bốn năm, sáu bảy tám
+0987654321~không chín tám bảy, sáu năm bốn, ba hai một
+0281234567~không hai tám một, hai ba bốn, năm sáu bảy
+0241234567~không hai bốn một, hai ba bốn, năm sáu bảy
+091-234-5678~không chín một, hai ba bốn, năm sáu bảy tám
+028-1234-5678~không hai tám, một hai ba bốn, năm sáu bảy tám
+(028) 1234-5678~không hai tám, một hai ba bốn, năm sáu bảy tám
+(024) 3825-6789~không hai bốn, ba tám hai năm, sáu bảy tám chín
+0912-345-678~không chín một hai, ba bốn năm, sáu bảy tám
++84-912-345-678~cộng tám bốn, chín một hai, ba bốn năm, sáu bảy tám
+1800-123-456~một tám không không, một hai ba, bốn năm sáu
+0987.654.321~không chín tám bảy, sáu năm bốn, ba hai một
++84 987 654 321~cộng tám bốn, chín tám bảy, sáu năm bốn, ba hai một
+0912-345-678-123~không chín một hai, ba bốn năm, sáu bảy tám, một hai ba
+091.234.5678~không chín một, hai ba bốn, năm sáu bảy tám
+024-382-5679~không hai bốn, ba tám hai, năm sáu bảy chín
+091-234-567-123~không chín một, hai ba bốn, năm sáu bảy, một hai ba
