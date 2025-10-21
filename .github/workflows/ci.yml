@@ -1,0 +1,334 @@
+name: NeMo Text Processing CI
+
+on:
+  push:
+    branches: [main, staging/**, staging_*]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  CUDA_VISIBLE_DEVICES: ""
+  CACHE_BASE: ~/.cache/nemo_text_processing
+
+jobs:
+  # ========== Stage: PyTorch version & NeMo Installation ==========
+  
+  setup-and-install:
+    name: "Setup: Python & Install NeMo"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/requirements.txt', 'requirements/requirements_test.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: PyTorch version
+      run: |
+        pip install torch torchvision || true
+        python -c "import torch; print('PyTorch version:', torch.__version__)" || echo "PyTorch not required"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements/requirements.txt
+        pip install -r requirements/requirements_test.txt
+    
+    - name: NeMo Installation (reinstall.sh release equivalent)
+      timeout-minutes: 10
+      run: |
+        pip install --editable ".[all]"
+    
+    - name: Verify installation
+      run: |
+        python -c "import nemo_text_processing; print('✓ Package installed successfully')"
+
+  # ========== L0: Create Grammars (Parallel) ==========
+  
+  l0-create-grammars:
+    name: "L0: Create Grammars"
+    needs: setup-and-install
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - { code: en, tn_text: "1", itn_text: "twenty", name: "English" }
+          - { code: vi, tn_text: "", itn_text: "một ngàn ", name: "Vietnamese" }
+          - { code: de, tn_text: "1", itn_text: "ein hundert ", name: "German" }
+          - { code: es, tn_text: "1", itn_text: "ciento uno ", name: "Spanish" }
+          - { code: fr, tn_text: "2", itn_text: "cent ", name: "French" }
+          - { code: ar, tn_text: "2", itn_text: "اثنان ", name: "Arabic" }
+          - { code: hi, tn_text: "१", itn_text: "एक ", name: "Hindi" }
+          - { code: ja, tn_text: "", itn_text: "100", name: "Japanese" }
+          - { code: zh, tn_text: "6", itn_text: "你", name: "Chinese" }
+          - { code: hu, tn_text: "100", itn_text: "", name: "Hungarian" }
+          - { code: it, tn_text: "122", itn_text: "", name: "Italian" }
+          - { code: pt, tn_text: "", itn_text: "dez ", name: "Portuguese" }
+          - { code: ru, tn_text: "03", itn_text: "три ", name: "Russian" }
+          - { code: sv, tn_text: "100", itn_text: "", name: "Swedish" }
+          - { code: hy, tn_text: "6", itn_text: "վեց ", name: "Armenian" }
+          - { code: mr, tn_text: "", itn_text: "शून्य ", name: "Marathi" }
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/requirements.txt') }}
+    
+    - name: Cache ${{ matrix.language.name }} grammars
+      id: cache-grammars
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CACHE_BASE }}/${{ matrix.language.code }}_grammars
+        key: ${{ runner.os }}-${{ matrix.language.code }}-grammars-${{ hashFiles(format('nemo_text_processing/**/{0}/**/*.py', matrix.language.code)) }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.language.code }}-grammars-
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements/requirements.txt
+        pip install --editable ".[all]"
+    
+    - name: L0 - Create ${{ matrix.language.name }} TN grammars
+      if: matrix.language.tn_text != ''
+      timeout-minutes: 15
+      continue-on-error: true
+      run: |
+        echo "Creating TN grammars for ${{ matrix.language.name }}..."
+        timeout 600 python nemo_text_processing/text_normalization/normalize.py \
+          --lang=${{ matrix.language.code }} \
+          --text="${{ matrix.language.tn_text }}" \
+          --cache_dir ${{ env.CACHE_BASE }}/${{ matrix.language.code }}_grammars \
+          || echo "⚠️  TN grammar creation timed out or failed (will retry in tests)"
+    
+    - name: L0 - Create ${{ matrix.language.name }} ITN grammars
+      if: matrix.language.itn_text != ''
+      timeout-minutes: 15
+      continue-on-error: true
+      run: |
+        echo "Creating ITN grammars for ${{ matrix.language.name }}..."
+        timeout 600 python nemo_text_processing/inverse_text_normalization/inverse_normalize.py \
+          --lang=${{ matrix.language.code }} \
+          --text="${{ matrix.language.itn_text }}" \
+          --cache_dir ${{ env.CACHE_BASE }}/${{ matrix.language.code }}_grammars \
+          || echo "⚠️  ITN grammar creation timed out or failed (will retry in tests)"
+
+  # ========== L0: Test Utils ==========
+  
+  l0-test-utils:
+    name: "L0: Test utils"
+    needs: setup-and-install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/requirements.txt') }}
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements/requirements.txt
+        pip install -r requirements/requirements_test.txt
+        pip install --editable ".[all]"
+    
+    - name: L0 - Test audio based utils
+      run: |
+        pytest tests/nemo_text_processing/audio_based_utils/ --cpu -v
+
+  # ========== L1: TN/ITN Tests (Sequential per language) ==========
+  
+  l1-test-languages:
+    name: "L1: Test ${{ matrix.language.name }}"
+    needs: l0-create-grammars
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3  # Limit parallel to avoid resource issues
+      matrix:
+        language:
+          - { code: en, name: "English", enabled: true }
+          - { code: vi, name: "Vietnamese", enabled: true }
+          - { code: de, name: "German", enabled: true }
+          - { code: es, name: "Spanish", enabled: true }
+          - { code: fr, name: "French", enabled: true }
+          - { code: ar, name: "Arabic", enabled: true }
+          - { code: hi, name: "Hindi", enabled: true }
+          - { code: ja, name: "Japanese", enabled: true }
+          - { code: zh, name: "Chinese", enabled: true }
+          - { code: pt, name: "Portuguese", enabled: true }
+          - { code: ru, name: "Russian", enabled: true }
+          - { code: hy, name: "Armenian", enabled: true }
+          - { code: mr, name: "Marathi", enabled: true }
+        exclude:
+          - language: { enabled: false }
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/requirements.txt') }}
+    
+    - name: Restore ${{ matrix.language.name }} grammars cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CACHE_BASE }}/${{ matrix.language.code }}_grammars
+        key: ${{ runner.os }}-${{ matrix.language.code }}-grammars-${{ hashFiles(format('nemo_text_processing/**/{0}/**/*.py', matrix.language.code)) }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.language.code }}-grammars-
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements/requirements.txt
+        pip install -r requirements/requirements_test.txt
+        pip install --editable ".[all]"
+    
+    - name: L1 - Run all ${{ matrix.language.name }} TN/ITN tests
+      timeout-minutes: 40
+      continue-on-error: false
+      run: |
+        if [ -d "tests/nemo_text_processing/${{ matrix.language.code }}" ]; then
+          echo "Running tests for ${{ matrix.language.name }}..."
+          pytest tests/nemo_text_processing/${{ matrix.language.code }}/ \
+            -m "not pleasefixme" \
+            --cpu \
+            --tn_cache_dir ${{ env.CACHE_BASE }}/${{ matrix.language.code }}_grammars \
+            -v \
+            --tb=short \
+            || (echo "❌ Tests failed for ${{ matrix.language.name }}" && exit 1)
+        else
+          echo "⚠️  No tests found for ${{ matrix.language.code }}"
+        fi
+    
+    - name: Upload test results for ${{ matrix.language.name }}
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.language.code }}
+        path: |
+          .pytest_cache/
+          result.log
+        retention-days: 7
+
+  # ========== L2: Export Grammars (Optional - only on main) ==========
+  
+  l2-export-grammars:
+    name: "L2: Export Grammars"
+    needs: l1-test-languages
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        export:
+          - { lang: en, grammars: itn_grammars, name: "English ITN" }
+          - { lang: vi, grammars: itn_grammars, name: "Vietnamese ITN" }
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/requirements.txt') }}
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements/requirements.txt
+        pip install --editable ".[all]"
+    
+    - name: L2 - Export ${{ matrix.export.name }} grammars
+      timeout-minutes: 20
+      run: |
+        cd tools/text_processing_deployment
+        python pynini_export.py \
+          --output_dir=./exported_${{ matrix.export.lang }} \
+          --grammars=${{ matrix.export.grammars }} \
+          --language=${{ matrix.export.lang }} \
+          --cache_dir=${{ env.CACHE_BASE }}/${{ matrix.export.lang }}_grammars
+        ls -R ./exported_${{ matrix.export.lang }}
+    
+    - name: Upload exported grammars
+      uses: actions/upload-artifact@v4
+      with:
+        name: exported-grammars-${{ matrix.export.lang }}-${{ matrix.export.grammars }}
+        path: tools/text_processing_deployment/exported_${{ matrix.export.lang }}
+        retention-days: 30
+
+  # ========== Final Summary ==========
+  
+  test-summary:
+    name: "Test Summary"
+    needs: [l0-test-utils, l1-test-languages]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: Check test results
+      run: |
+        echo "=========================================="
+        echo "CI Pipeline Summary"
+        echo "=========================================="
+        echo "✓ Setup: ${{ needs.setup-and-install.result }}"
+        echo "✓ Utils: ${{ needs.l0-test-utils.result }}"
+        echo "✓ Language Tests: ${{ needs.l1-test-languages.result }}"
+        echo "=========================================="
+        
+        if [ "${{ needs.l1-test-languages.result }}" != "success" ]; then
+          echo "❌ Some language tests failed"
+          exit 1
+        fi
+        
+        echo "✅ All tests passed!"
