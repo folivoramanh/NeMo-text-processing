@@ -1,0 +1,45 @@
+{
+  "name": "Money TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for money TN tests.",
+  "scenarios": [
+    {
+      "key": "currency_symbol_prefix",
+      "description": "Currency symbol before number.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[$€£¥]\\s?\\d+([,.]\\d+)?"},
+      "suggested_input": "$12.50"
+    },
+    {
+      "key": "currency_symbol_suffix",
+      "description": "Currency symbol after number.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+([,.]\\d+)?\\s?[$€£¥]"},
+      "suggested_input": "12€"
+    },
+    {
+      "key": "currency_code",
+      "description": "ISO-style currency code with number.",
+      "detector": {"type": "regex_search", "pattern": "\\b(USD|EUR|GBP|JPY|VND|CAD|AUD)\\b", "ignore_case": true},
+      "suggested_input": "12 USD"
+    },
+    {
+      "key": "minor_units",
+      "description": "Money amount with decimal/minor units.",
+      "detector": {"type": "regex_search", "pattern": "[$€£¥]?\\d+[,.]\\d{2}\\b"},
+      "suggested_input": "$12.50"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "bare_decimal",
+      "description": "Bare decimal without currency marker should usually be decimal, not money.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+[,.]\\d+"},
+      "suggested_input": "$12.50"
+    },
+    {
+      "key": "ticker_or_code_without_amount",
+      "description": "Currency code without an amount may be a word, ticker, or abbreviation.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Z]{3}"},
+      "suggested_input": "12 USD"
+    }
+  ]
+}

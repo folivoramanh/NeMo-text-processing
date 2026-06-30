@@ -1,0 +1,33 @@
+{
+  "name": "Roman TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for roman numeral TN tests.",
+  "scenarios": [
+    {
+      "key": "uppercase_roman",
+      "description": "Uppercase roman numeral.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[IVXLCDM]+"},
+      "suggested_input": "XIV"
+    },
+    {
+      "key": "lowercase_roman",
+      "description": "Lowercase roman numeral if supported.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[ivxlcdm]+"},
+      "suggested_input": "xiv"
+    },
+    {
+      "key": "roman_context",
+      "description": "Roman numeral with context such as chapter, title, or monarch names.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "Chapter XIV"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "roman_like_word",
+      "description": "Roman-looking letters may be names, words, or variables unless context justifies roman ownership.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[ivxlcdmIVXLCDM]{1,3}"},
+      "suggested_input": "Chapter XIV"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "Time TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for time TN tests.",
+  "scenarios": [
+    {
+      "key": "colon_time",
+      "description": "Clock time with hour and minute.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}:\\d{2}(:\\d{2})?"},
+      "suggested_input": "12:30"
+    },
+    {
+      "key": "am_pm",
+      "description": "Clock time with AM/PM marker.",
+      "detector": {"type": "regex_search", "pattern": "\\b\\d{1,2}(:\\d{2})?\\s*(am|pm|a\\.m\\.|p\\.m\\.)\\b", "ignore_case": true},
+      "suggested_input": "12:30 pm"
+    },
+    {
+      "key": "timezone",
+      "description": "Clock time with timezone marker.",
+      "detector": {"type": "regex_search", "pattern": "\\b\\d{1,2}:\\d{2}\\s*[A-Z]{2,4}\\b"},
+      "suggested_input": "12:30 PST"
+    },
+    {
+      "key": "time_range",
+      "description": "Time range if the class or range integration supports it.",
+      "detector": {"type": "regex_search", "pattern": "\\d{1,2}:\\d{2}\\s*[-–]\\s*\\d{1,2}:\\d{2}"},
+      "suggested_input": "9:00-10:30"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "ratio_like_time",
+      "description": "Colon-separated values may be ratios, scores, or Bible-like references rather than clock time.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}:\\d{1,2}"},
+      "suggested_input": "at 12:30"
+    },
+    {
+      "key": "version_like_time",
+      "description": "Three-part colon strings may be timestamps or durations and need clear ownership.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}:\\d{2}:\\d{2}"},
+      "suggested_input": "12:30:45"
+    }
+  ]
+}

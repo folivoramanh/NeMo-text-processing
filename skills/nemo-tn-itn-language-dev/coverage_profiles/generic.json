@@ -1,0 +1,30 @@
+{
+  "name": "Generic TN coverage profile",
+  "description": "Fallback profile for semiotic classes without a class-specific checklist.",
+  "scenarios": [
+    {
+      "key": "basic",
+      "description": "At least one simple standalone example.",
+      "detector": {"type": "any"},
+      "suggested_input": "<basic class input>"
+    },
+    {
+      "key": "sentence_context",
+      "description": "Example embedded in sentence context.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "<class input> in a sentence"
+    },
+    {
+      "key": "trailing_punctuation",
+      "description": "Example adjacent to trailing punctuation.",
+      "detector": {"type": "regex_search", "pattern": "[.,;:!?]$"},
+      "suggested_input": "<class input>."
+    },
+    {
+      "key": "multiple_expected",
+      "description": "At least one input with multiple accepted outputs.",
+      "detector": {"type": "multiple_expected"},
+      "suggested_input": "<class input>~<expected one>~<expected two>"
+    }
+  ]
+}

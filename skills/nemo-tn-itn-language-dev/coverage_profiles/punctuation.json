@@ -1,0 +1,27 @@
+{
+  "name": "Punctuation TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for punctuation tests.",
+  "scenarios": [
+    {
+      "key": "sentence_punctuation",
+      "description": "Punctuation attached to sentence text.",
+      "detector": {"type": "regex_search", "pattern": "[.,;:!?]"},
+      "suggested_input": "hello, world!"
+    },
+    {
+      "key": "brackets_or_quotes",
+      "description": "Brackets or quotes if punctuation handling supports them.",
+      "detector": {"type": "regex_search", "pattern": "[()\\[\\]\"']"},
+      "suggested_input": "\"hello\""
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "semantic_punctuation",
+      "description": "Punctuation inside dates, times, decimals, URLs, or phone numbers should usually remain with those classes.",
+      "detector": {"type": "regex_search", "pattern": "\\d[/:.,-]\\d|https?://|@"},
+      "suggested_input": "hello, world"
+    }
+  ]
+}

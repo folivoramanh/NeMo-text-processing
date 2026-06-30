@@ -1,0 +1,45 @@
+{
+  "name": "Decimal TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for decimal TN tests.",
+  "scenarios": [
+    {
+      "key": "dot_decimal",
+      "description": "Decimal with dot separator.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d+\\.\\d+"},
+      "suggested_input": "3.14"
+    },
+    {
+      "key": "comma_decimal",
+      "description": "Decimal with comma separator.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d+,\\d+"},
+      "suggested_input": "3,14"
+    },
+    {
+      "key": "leading_zero_decimal",
+      "description": "Decimal whose fractional value starts with zero.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d+[,.]0\\d+"},
+      "suggested_input": "0.05"
+    },
+    {
+      "key": "negative_decimal",
+      "description": "Negative decimal.",
+      "detector": {"type": "regex_fullmatch", "pattern": "-\\d+[,.]\\d+"},
+      "suggested_input": "-3.14"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "version_like_decimal",
+      "description": "Multiple-dot numeric strings may be versions or IP addresses rather than decimals.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+(\\.\\d+){2,}"},
+      "suggested_input": "1.2.3"
+    },
+    {
+      "key": "money_or_measure_decimal",
+      "description": "Decimal with currency or unit marker should likely belong to money or measure.",
+      "detector": {"type": "regex_search", "pattern": "^[$€£¥]?\\d+[,.]\\d+\\s*([$€£¥%]|[A-Za-z]{1,5})$"},
+      "suggested_input": "$3.14"
+    }
+  ]
+}

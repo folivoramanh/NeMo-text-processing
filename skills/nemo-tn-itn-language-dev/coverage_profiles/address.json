@@ -1,0 +1,45 @@
+{
+  "name": "Address TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for address TN tests.",
+  "scenarios": [
+    {
+      "key": "street_address",
+      "description": "Street address with number and street designator.",
+      "detector": {"type": "regex_search", "pattern": "\\b\\d+\\s+.+\\b(St|Street|Ave|Avenue|Rd|Road|Blvd|Drive|Dr|Court|Ct)\\b", "ignore_case": true},
+      "suggested_input": "123 Main St"
+    },
+    {
+      "key": "unit_or_apartment",
+      "description": "Address with unit/apartment/suite designator.",
+      "detector": {"type": "regex_search", "pattern": "\\b(Apt|Apartment|Unit|Ste|Suite|Dept|Depto)\\b", "ignore_case": true},
+      "suggested_input": "123 Main St Apt 5B"
+    },
+    {
+      "key": "po_box",
+      "description": "PO box address.",
+      "detector": {"type": "regex_search", "pattern": "\\bP\\.?\\s*O\\.?\\s*Box\\b", "ignore_case": true},
+      "suggested_input": "P.O. Box 456"
+    },
+    {
+      "key": "postal_code",
+      "description": "Address-like input with postal or ZIP code.",
+      "detector": {"type": "regex_search", "pattern": "\\b\\d{5}(-\\d{4})?\\b"},
+      "suggested_input": "123 Main St, CA 95051"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "bare_number",
+      "description": "Bare address number should usually be cardinal without street/postal context.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+"},
+      "suggested_input": "123 Main St"
+    },
+    {
+      "key": "unit_designator_as_measure",
+      "description": "Short designators may overlap with measure units or abbreviations.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Za-z]{1,4}\\.?"},
+      "suggested_input": "123 Main St"
+    }
+  ]
+}

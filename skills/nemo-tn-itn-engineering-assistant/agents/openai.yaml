@@ -1,0 +1,4 @@
+interface:
+  display_name: "NeMo TN/ITN Engineering Assistant"
+  short_description: "Human-gated WFST grammar engineering"
+  default_prompt: "Use $nemo-tn-itn-engineering-assistant to debug this NeMo TN/ITN grammar change with human-gated linguistic assumptions."

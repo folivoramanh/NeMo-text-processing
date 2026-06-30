@@ -1,0 +1,33 @@
+{
+  "name": "Abbreviation TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for abbreviation TN tests.",
+  "scenarios": [
+    {
+      "key": "dotted_abbreviation",
+      "description": "Dotted abbreviation.",
+      "detector": {"type": "regex_fullmatch", "pattern": "([A-Za-z]\\.){2,}"},
+      "suggested_input": "U.S.A."
+    },
+    {
+      "key": "uppercase_abbreviation",
+      "description": "Uppercase abbreviation or initialism.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Z]{2,}"},
+      "suggested_input": "NASA"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "ordinary_word",
+      "description": "Mixed/lowercase alphabetic tokens may be ordinary words rather than abbreviations.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Za-z]+"},
+      "suggested_input": "U.S.A."
+    },
+    {
+      "key": "state_or_address_designator",
+      "description": "Short uppercase tokens may be state codes, units, or address components.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Z]{2}"},
+      "suggested_input": "U.S."
+    }
+  ]
+}

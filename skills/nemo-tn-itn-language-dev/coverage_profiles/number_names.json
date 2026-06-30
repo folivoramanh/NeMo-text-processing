@@ -1,0 +1,5 @@
+{
+  "name": "Number names TN coverage profile",
+  "extends": "cardinal",
+  "description": "Alias profile for number-name helper classes."
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Preprocessor TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for preprocessor tests.",
+  "scenarios": [
+    {
+      "key": "normalization_trigger",
+      "description": "Input that triggers the language-specific preprocessor.",
+      "detector": {"type": "any"},
+      "suggested_input": "<preprocessor-specific input>"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "overbroad_preprocessing",
+      "description": "Preprocessing can affect all classes; avoid changing ordinary text without explicit rationale.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "<specific trigger>"
+    }
+  ]
+}

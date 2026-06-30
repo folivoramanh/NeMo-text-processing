@@ -73,15 +73,15 @@ testTNRange() {
   runtest $input
 }
 
-# testTNTelephone() {
-#   input=$PROJECT_DIR/vi/data_text_normalization/test_cases_telephone.txt
-#   runtest $input
-# }
+testTNTelephone() {
+  input=$PROJECT_DIR/vi/data_text_normalization/test_cases_telephone.txt
+  runtest $input
+}
 
-# testTNElectronic() {
-#   input=$PROJECT_DIR/vi/data_text_normalization/test_cases_electronic.txt
-#   runtest $input
-# }
+testTNElectronic() {
+  input=$PROJECT_DIR/vi/data_text_normalization/test_cases_electronic.txt
+  runtest $input
+}
 
 # Load shUnit2
 . /workspace/shunit2/shunit2 

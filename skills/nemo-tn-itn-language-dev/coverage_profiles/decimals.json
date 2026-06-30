@@ -1,0 +1,5 @@
+{
+  "name": "Decimals TN coverage profile",
+  "extends": "decimal",
+  "description": "Alias profile for repos/languages that name the class decimals."
+}

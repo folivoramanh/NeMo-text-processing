@@ -1,0 +1,33 @@
+{
+  "name": "Range TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for range TN tests.",
+  "scenarios": [
+    {
+      "key": "numeric_dash_range",
+      "description": "Numeric range with dash.",
+      "detector": {"type": "regex_search", "pattern": "\\d+\\s*[-–]\\s*\\d+"},
+      "suggested_input": "3-5"
+    },
+    {
+      "key": "date_or_time_range",
+      "description": "Date/time range if the language supports it.",
+      "detector": {"type": "regex_search", "pattern": "\\d{1,2}[:/]\\d{1,2}.*[-–].*\\d{1,2}[:/]\\d{1,2}"},
+      "suggested_input": "9:00-10:30"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "negative_number",
+      "description": "Leading hyphen can indicate a negative number rather than a range.",
+      "detector": {"type": "regex_fullmatch", "pattern": "-\\d+"},
+      "suggested_input": "3-5"
+    },
+    {
+      "key": "phone_or_id_like_range",
+      "description": "Hyphenated digit groups may be phone numbers or IDs rather than ranges.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{2,4}(-\\d{2,4}){2,}"},
+      "suggested_input": "3-5"
+    }
+  ]
+}

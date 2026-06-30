@@ -16,12 +16,14 @@ from nemo_text_processing.text_normalization.vi.graph_utils import GraphFst
 from nemo_text_processing.text_normalization.vi.verbalizers.cardinal import CardinalFst
 from nemo_text_processing.text_normalization.vi.verbalizers.date import DateFst
 from nemo_text_processing.text_normalization.vi.verbalizers.decimal import DecimalFst
+from nemo_text_processing.text_normalization.vi.verbalizers.electronic import ElectronicFst
 from nemo_text_processing.text_normalization.vi.verbalizers.fraction import FractionFst
 from nemo_text_processing.text_normalization.vi.verbalizers.measure import MeasureFst
 from nemo_text_processing.text_normalization.vi.verbalizers.money import MoneyFst
 from nemo_text_processing.text_normalization.vi.verbalizers.ordinal import OrdinalFst
 from nemo_text_processing.text_normalization.vi.verbalizers.range import RangeFst
 from nemo_text_processing.text_normalization.vi.verbalizers.roman import RomanFst
+from nemo_text_processing.text_normalization.vi.verbalizers.telephone import TelephoneFst
 from nemo_text_processing.text_normalization.vi.verbalizers.time import TimeFst
 from nemo_text_processing.text_normalization.vi.verbalizers.whitelist import WhiteListFst
 from nemo_text_processing.text_normalization.vi.verbalizers.word import WordFst
@@ -58,6 +60,12 @@ class VerbalizeFst(GraphFst):
         time_fst = TimeFst(deterministic=deterministic)
         time_graph = time_fst.fst
 
+        telephone = TelephoneFst(deterministic=deterministic)
+        telephone_graph = telephone.fst
+
+        electronic = ElectronicFst(deterministic=deterministic)
+        electronic_graph = electronic.fst
+
         money = MoneyFst(deterministic=deterministic)
         money_graph = money.fst
 
@@ -77,6 +85,8 @@ class VerbalizeFst(GraphFst):
             | date_graph
             | roman_graph
             | time_graph
+            | telephone_graph
+            | electronic_graph
             | money_graph
             | measure_graph
             | range_graph

@@ -1,0 +1,57 @@
+{
+  "name": "Cardinal TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for cardinal TN tests.",
+  "scenarios": [
+    {
+      "key": "zero",
+      "description": "Zero is covered explicitly.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?0"},
+      "suggested_input": "0"
+    },
+    {
+      "key": "single_digit",
+      "description": "Single digit cardinal.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?[1-9]"},
+      "suggested_input": "7"
+    },
+    {
+      "key": "multi_digit",
+      "description": "Multi-digit cardinal.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d{2,}"},
+      "suggested_input": "1234"
+    },
+    {
+      "key": "negative",
+      "description": "Negative cardinal.",
+      "detector": {"type": "startswith", "prefix": "-"},
+      "suggested_input": "-25"
+    },
+    {
+      "key": "grouped_number",
+      "description": "Grouped cardinal with locale separator.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d{1,3}([,. ]\\d{3})+"},
+      "suggested_input": "1,234"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "date_like_number",
+      "description": "Slash or hyphen separated numbers may be dates, ranges, fractions, or IDs rather than cardinals.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,4}[/-]\\d{1,2}([/-]\\d{1,4})?"},
+      "suggested_input": "12/05/2026"
+    },
+    {
+      "key": "time_like_number",
+      "description": "Colon separated numbers may be time rather than cardinal.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}:\\d{2}(:\\d{2})?"},
+      "suggested_input": "12:30"
+    },
+    {
+      "key": "measure_or_money_like",
+      "description": "Numbers adjacent to units or currency markers should likely belong to measure or money.",
+      "detector": {"type": "regex_search", "pattern": "^[+-]?\\d+([,.]\\d+)?\\s*([$€£¥%]|[A-Za-z]{1,5})$"},
+      "suggested_input": "12 kg"
+    }
+  ]
+}

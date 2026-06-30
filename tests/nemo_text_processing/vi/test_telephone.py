@@ -20,6 +20,7 @@ from ..utils import CACHE_DIR, parse_test_case_file
 
 try:
     from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
+    from nemo_text_processing.text_normalization.normalize import Normalizer
 
     PYNINI_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
@@ -29,6 +30,11 @@ except (ImportError, ModuleNotFoundError):
 class TestTelephone:
     inverse_normalizer = (
         InverseNormalizer(lang='vi', cache_dir=CACHE_DIR, overwrite_cache=False) if PYNINI_AVAILABLE else None
+    )
+    normalizer = (
+        Normalizer(input_case='cased', lang='vi', cache_dir=None, overwrite_cache=True, post_process=True)
+        if PYNINI_AVAILABLE
+        else None
     )
 
     @parameterized.expand(parse_test_case_file('vi/data_inverse_text_normalization/test_cases_telephone.txt'))
@@ -40,4 +46,34 @@ class TestTelephone:
     @pytest.mark.unit
     def test_denorm(self, test_input, expected):
         pred = self.inverse_normalizer.inverse_normalize(test_input, verbose=False)
+        assert pred == expected
+
+    @parameterized.expand(parse_test_case_file('vi/data_text_normalization/test_cases_telephone.txt'))
+    @pytest.mark.skipif(
+        not PYNINI_AVAILABLE,
+        reason="`pynini` not installed, please install via nemo_text_processing/pynini_install.sh",
+    )
+    @pytest.mark.run_only_on('CPU')
+    @pytest.mark.unit
+    def test_norm(self, test_input, expected):
+        pred = self.normalizer.normalize(test_input, verbose=False, punct_post_process=False)
+        assert pred == expected
+
+    @parameterized.expand(
+        [
+            ("112", "một trăm mười hai"),
+            ("113", "một trăm mười ba"),
+            ("114", "một trăm mười bốn"),
+            ("115", "một trăm mười lăm"),
+            ("1900", "một nghìn chín trăm"),
+        ]
+    )
+    @pytest.mark.skipif(
+        not PYNINI_AVAILABLE,
+        reason="`pynini` not installed, please install via nemo_text_processing/pynini_install.sh",
+    )
+    @pytest.mark.run_only_on('CPU')
+    @pytest.mark.unit
+    def test_bare_short_codes_remain_cardinal(self, test_input, expected):
+        pred = self.normalizer.normalize(test_input, verbose=False, punct_post_process=False)
         assert pred == expected

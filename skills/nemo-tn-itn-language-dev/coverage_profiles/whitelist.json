@@ -1,0 +1,27 @@
+{
+  "name": "Whitelist TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for whitelist TN tests.",
+  "scenarios": [
+    {
+      "key": "exact_whitelist_entry",
+      "description": "Known whitelist entry.",
+      "detector": {"type": "any"},
+      "suggested_input": "<whitelist entry>"
+    },
+    {
+      "key": "sentence_context",
+      "description": "Whitelist entry in sentence context.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "sentence with <whitelist entry>"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "overbroad_whitelist",
+      "description": "Whitelist entries can override more specific classes; avoid broad/common words without product rationale.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[^\\d\\W]{1,4}"},
+      "suggested_input": "<specific whitelist entry>"
+    }
+  ]
+}

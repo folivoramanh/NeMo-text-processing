@@ -1,0 +1,33 @@
+{
+  "name": "Ordinal TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for ordinal TN tests.",
+  "scenarios": [
+    {
+      "key": "suffix_ordinal",
+      "description": "Ordinal with suffix or ordinal marker.",
+      "detector": {"type": "regex_search", "pattern": "\\d+(st|nd|rd|th|º|ª|er|e)\\b", "ignore_case": true},
+      "suggested_input": "21st"
+    },
+    {
+      "key": "roman_ordinal",
+      "description": "Roman numeral ordinal/name context when the language supports it.",
+      "detector": {"type": "regex_search", "pattern": "\\b[IVXLCDM]+\\b"},
+      "suggested_input": "Chapter IV"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "bare_cardinal",
+      "description": "Bare digits should usually be cardinal, not ordinal, without suffix or ordinal context.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+"},
+      "suggested_input": "1st"
+    },
+    {
+      "key": "roman_name_or_letter",
+      "description": "Roman-like tokens may be names, letters, or serials unless context justifies ordinal/roman ownership.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[IVXLCDM]+"},
+      "suggested_input": "Chapter IV"
+    }
+  ]
+}

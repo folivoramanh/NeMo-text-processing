@@ -1,0 +1,51 @@
+{
+  "name": "Measure TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for measure TN tests.",
+  "scenarios": [
+    {
+      "key": "number_unit",
+      "description": "Cardinal number followed by unit.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d+\\s*[A-Za-z%°µμ]+\\b"},
+      "suggested_input": "12 kg"
+    },
+    {
+      "key": "decimal_unit",
+      "description": "Decimal number followed by unit.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[-+]?\\d+[,.]\\d+\\s*[A-Za-z%°µμ]+\\b"},
+      "suggested_input": "12.5 kg"
+    },
+    {
+      "key": "fraction_unit",
+      "description": "Fraction followed by unit.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+/\\d+\\s*[A-Za-z%°µμ]+\\b"},
+      "suggested_input": "1/2 kg"
+    },
+    {
+      "key": "compound_unit",
+      "description": "Compound unit such as per-hour or per-second.",
+      "detector": {"type": "regex_search", "pattern": "\\d+([,.]\\d+)?\\s*[A-Za-z]+/[A-Za-z]+"},
+      "suggested_input": "60 km/h"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "money_like_measure",
+      "description": "Currency markers should usually belong to money, not measure.",
+      "detector": {"type": "regex_search", "pattern": "[$€£¥]"},
+      "suggested_input": "12 kg"
+    },
+    {
+      "key": "math_like_measure",
+      "description": "Symbols such as x, +, = may indicate math expressions rather than measure.",
+      "detector": {"type": "regex_search", "pattern": "\\d+\\s*[x+=-]\\s*\\d+"},
+      "suggested_input": "12 kg"
+    },
+    {
+      "key": "address_like_measure",
+      "description": "Street/unit designators may look like units but should belong to address if address handling exists.",
+      "detector": {"type": "regex_search", "pattern": "\\b(St|Street|Ave|Apt|Unit|Rd|Road)\\b", "ignore_case": true},
+      "suggested_input": "123 Main St"
+    }
+  ]
+}

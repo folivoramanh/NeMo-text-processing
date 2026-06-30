@@ -1,0 +1,57 @@
+{
+  "name": "Date TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for date TN tests.",
+  "scenarios": [
+    {
+      "key": "slash_date",
+      "description": "Numeric date with slash separators.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,4}/\\d{1,2}(/\\d{1,4})?"},
+      "suggested_input": "12/31/2026"
+    },
+    {
+      "key": "hyphen_date",
+      "description": "Numeric date with hyphen separators.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,4}-\\d{1,2}(-\\d{1,4})?"},
+      "suggested_input": "2026-05-27"
+    },
+    {
+      "key": "month_name",
+      "description": "Date with month name or abbreviation.",
+      "detector": {"type": "regex_search", "pattern": "\\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December)\\b", "ignore_case": true},
+      "suggested_input": "May 27, 2026"
+    },
+    {
+      "key": "year_only_or_year_context",
+      "description": "Year-like date expression if the language supports it.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{4}"},
+      "suggested_input": "2026"
+    },
+    {
+      "key": "era_or_locale_marker",
+      "description": "Locale-specific era/year/month/day marker.",
+      "detector": {"type": "regex_search", "pattern": "[年月日]|\\b(AD|BC|CE|BCE)\\b", "ignore_case": true},
+      "suggested_input": "2026年5月27日"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "ambiguous_short_slash",
+      "description": "Short slash forms may be date, fraction, range, or ID depending on locale/context.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}/\\d{1,2}"},
+      "suggested_input": "contextual date example"
+    },
+    {
+      "key": "bare_year_cardinal",
+      "description": "Bare 4-digit numbers may be cardinal or year depending on context and language policy.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{4}"},
+      "suggested_input": "in 2026"
+    },
+    {
+      "key": "hyphen_range_or_serial",
+      "description": "Hyphenated numbers may be ranges or serials rather than dates.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,4}-\\d{1,4}"},
+      "suggested_input": "2026-05-27"
+    }
+  ]
+}

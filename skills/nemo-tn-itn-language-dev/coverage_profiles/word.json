@@ -1,0 +1,27 @@
+{
+  "name": "Word TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for word/passthrough tests.",
+  "scenarios": [
+    {
+      "key": "plain_word",
+      "description": "Plain word passthrough.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[^\\d\\W]+", "ignore_case": true},
+      "suggested_input": "hello"
+    },
+    {
+      "key": "sentence_context",
+      "description": "Words around a semiotic class.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "call 123"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "numeric_or_symbol_token",
+      "description": "Numeric or symbol-heavy tokens should usually be owned by a more specific class.",
+      "detector": {"type": "regex_search", "pattern": "\\d|[@$€£¥%:/]"},
+      "suggested_input": "plain word"
+    }
+  ]
+}

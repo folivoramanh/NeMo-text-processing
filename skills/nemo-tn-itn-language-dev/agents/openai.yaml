@@ -1,0 +1,4 @@
+interface:
+  display_name: "NeMo TN/ITN Language Dev"
+  short_description: "Build or extend NeMo TN/ITN language grammars."
+  default_prompt: "Use this skill to add a new NeMo Text Processing language or extend an existing language's semiotic classes with reviewable token schemas, TSV resources, tests, and export compatibility."

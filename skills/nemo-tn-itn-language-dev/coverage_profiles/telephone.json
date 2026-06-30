@@ -1,0 +1,104 @@
+{
+  "name": "Telephone TN coverage profile",
+  "description": "Language-agnostic input-shape checklist for telephone-like TN tests. Suggested inputs are shapes, not expected outputs.",
+  "scenarios": [
+    {
+      "key": "compact_local",
+      "description": "Compact local or national number with no separators.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{7,11}"},
+      "suggested_input": "0936555449"
+    },
+    {
+      "key": "hyphen_local",
+      "description": "Hyphen-separated local or national number.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{2,4}-\\d{3,4}-\\d{3,4}"},
+      "suggested_input": "093-655-5449"
+    },
+    {
+      "key": "dot_local",
+      "description": "Dot-separated local or national number.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{2,4}\\.\\d{3,4}\\.\\d{3,4}"},
+      "suggested_input": "028.3821.5689"
+    },
+    {
+      "key": "parenthesized_area",
+      "description": "Parenthesized area code.",
+      "detector": {"type": "regex_search", "pattern": "\\(\\d{2,4}\\)"},
+      "suggested_input": "(093) 655-5449"
+    },
+    {
+      "key": "country_code_plus",
+      "description": "International country code with plus sign.",
+      "detector": {"type": "startswith", "prefix": "+"},
+      "suggested_input": "+84 093-655-5449"
+    },
+    {
+      "key": "country_code_hyphen",
+      "description": "International country code with hyphen separators.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\+\\d{1,3}-\\d[\\d-]+"},
+      "suggested_input": "+84-936-555-449"
+    },
+    {
+      "key": "country_code_parenthesized",
+      "description": "International number with plus sign and parenthesized area code.",
+      "detector": {"type": "regex_search", "pattern": "^\\+\\d{1,3}\\s+\\(\\d{2,4}\\)"},
+      "suggested_input": "+1 (415) 555-0123"
+    },
+    {
+      "key": "contextual_short_service",
+      "description": "Emergency or short service number with context cues that justify telephone ownership.",
+      "detector": {
+        "type": "all",
+        "detectors": [
+          {"type": "sentence_context"},
+          {"type": "regex_search", "pattern": "(?<![\\d+.-])\\b\\d{3,4}\\b(?![\\d.-])"}
+        ]
+      },
+      "suggested_input": "call 112"
+    },
+    {
+      "key": "ip_like",
+      "description": "IP-like dotted numeric sequence, if the class intentionally owns this behavior.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,3}(\\.\\d{1,3}){3}"},
+      "suggested_input": "192.168.0.1"
+    },
+    {
+      "key": "long_grouped_sequence",
+      "description": "Long grouped digit sequence such as card-like or ID-like input.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{4}(-\\d{4}){3,}"},
+      "suggested_input": "1234-5678-9012-3456"
+    },
+    {
+      "key": "sentence_context",
+      "description": "Telephone number embedded in a sentence.",
+      "detector": {"type": "sentence_context"},
+      "suggested_input": "call 093-655-5449 now"
+    },
+    {
+      "key": "trailing_punctuation",
+      "description": "Number followed immediately by punctuation.",
+      "detector": {"type": "regex_search", "pattern": "\\d[.,;:!?]$"},
+      "suggested_input": "093-655-5449."
+    },
+    {
+      "key": "spaced_groups",
+      "description": "Digit groups separated only by spaces.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{2,4}( \\d{2,4}){2,}"},
+      "suggested_input": "093 655 5449"
+    },
+    {
+      "key": "extension",
+      "description": "Phone extension marker.",
+      "detector": {"type": "regex_search", "pattern": "\\b(ext|extension|x)\\b", "ignore_case": true},
+      "suggested_input": "093-655-5449 ext 123"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "bare_short_numeric",
+      "description": "Bare 3-4 digit numbers may be cardinals rather than telephone/service codes unless context or product requirements justify telephone ownership.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{3,4}"},
+      "suggested_input": "call 112"
+    }
+  ]
+}

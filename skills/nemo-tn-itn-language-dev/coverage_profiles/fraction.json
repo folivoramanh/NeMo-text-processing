@@ -1,0 +1,39 @@
+{
+  "name": "Fraction TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for fraction TN tests.",
+  "scenarios": [
+    {
+      "key": "slash_fraction",
+      "description": "Simple slash fraction.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+/\\d+"},
+      "suggested_input": "3/4"
+    },
+    {
+      "key": "mixed_fraction",
+      "description": "Mixed number plus fraction.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+\\s+\\d+/\\d+"},
+      "suggested_input": "1 1/2"
+    },
+    {
+      "key": "fraction_with_unit",
+      "description": "Fraction adjacent to a unit if the class or measure integration supports it.",
+      "detector": {"type": "regex_search", "pattern": "\\d+/\\d+\\s*[A-Za-z%]+"},
+      "suggested_input": "1/2 kg"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "date_like_fraction",
+      "description": "Slash-separated numbers may be dates in some locales rather than fractions.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{1,2}/\\d{1,2}/\\d{2,4}"},
+      "suggested_input": "1/2"
+    },
+    {
+      "key": "ratio_like_fraction",
+      "description": "Slash-separated units or ratios may belong to measure rather than fraction.",
+      "detector": {"type": "regex_search", "pattern": "\\b\\d+/\\d+\\s*(km/h|m/s|mph|%)\\b", "ignore_case": true},
+      "suggested_input": "1/2"
+    }
+  ]
+}

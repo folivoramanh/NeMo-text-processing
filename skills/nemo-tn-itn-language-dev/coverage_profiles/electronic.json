@@ -1,0 +1,45 @@
+{
+  "name": "Electronic TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for electronic TN tests.",
+  "scenarios": [
+    {
+      "key": "email",
+      "description": "Email address.",
+      "detector": {"type": "regex_search", "pattern": "[^\\s@]+@[^\\s@]+\\.[^\\s@]+"},
+      "suggested_input": "user@example.com"
+    },
+    {
+      "key": "url_with_protocol",
+      "description": "URL with protocol.",
+      "detector": {"type": "regex_search", "pattern": "\\bhttps?://\\S+", "ignore_case": true},
+      "suggested_input": "https://example.com"
+    },
+    {
+      "key": "www_domain",
+      "description": "WWW/domain-like input.",
+      "detector": {"type": "regex_search", "pattern": "\\b(www\\.)?[^\\s]+\\.(com|org|net|edu|gov|io)\\b", "ignore_case": true},
+      "suggested_input": "www.example.com"
+    },
+    {
+      "key": "username_or_handle",
+      "description": "Username or handle if the class supports it.",
+      "detector": {"type": "regex_search", "pattern": "(^|\\s)@[A-Za-z0-9_]+"},
+      "suggested_input": "@username"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "at_symbol_without_domain",
+      "description": "At-sign text without a domain may be social handle, mention, or ordinary punctuation.",
+      "detector": {"type": "regex_search", "pattern": "(^|\\s)@\\S+$"},
+      "suggested_input": "user@example.com"
+    },
+    {
+      "key": "version_or_decimal_domain_like",
+      "description": "Dotted numeric strings may be versions, IPs, dates, or decimals rather than electronic.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d+(\\.\\d+){1,}"},
+      "suggested_input": "example.com"
+    }
+  ]
+}

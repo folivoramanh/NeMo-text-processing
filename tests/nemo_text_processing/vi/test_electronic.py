@@ -19,6 +19,7 @@ from ..utils import CACHE_DIR, parse_test_case_file
 
 try:
     from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
+    from nemo_text_processing.text_normalization.normalize import Normalizer
 
     PYNINI_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
@@ -28,6 +29,11 @@ except (ImportError, ModuleNotFoundError):
 class TestElectronic:
     inverse_normalizer = (
         InverseNormalizer(lang='vi', cache_dir=CACHE_DIR, overwrite_cache=False) if PYNINI_AVAILABLE else None
+    )
+    normalizer = (
+        Normalizer(input_case='cased', lang='vi', cache_dir=None, overwrite_cache=True, post_process=True)
+        if PYNINI_AVAILABLE
+        else None
     )
 
     @parameterized.expand(parse_test_case_file('vi/data_inverse_text_normalization/test_cases_electronic.txt'))
@@ -39,4 +45,31 @@ class TestElectronic:
     @pytest.mark.unit
     def test_denorm(self, test_input, expected):
         pred = self.inverse_normalizer.inverse_normalize(test_input, verbose=False)
+        assert pred == expected
+
+    @parameterized.expand(parse_test_case_file('vi/data_text_normalization/test_cases_electronic.txt'))
+    @pytest.mark.skipif(
+        not PYNINI_AVAILABLE,
+        reason="`pynini` not installed, please install via nemo_text_processing/pynini_install.sh",
+    )
+    @pytest.mark.run_only_on('CPU')
+    @pytest.mark.unit
+    def test_norm(self, test_input, expected):
+        pred = self.normalizer.normalize(test_input, verbose=False, punct_post_process=False)
+        assert pred == expected
+
+    @parameterized.expand(
+        [
+            ("5.4", "năm. bốn"),
+            ("192.168.0.1", "một chín hai chấm một sáu tám chấm không chấm một"),
+        ]
+    )
+    @pytest.mark.skipif(
+        not PYNINI_AVAILABLE,
+        reason="`pynini` not installed, please install via nemo_text_processing/pynini_install.sh",
+    )
+    @pytest.mark.run_only_on('CPU')
+    @pytest.mark.unit
+    def test_electronic_does_not_own_numeric_dotted_inputs(self, test_input, expected):
+        pred = self.normalizer.normalize(test_input, verbose=False, punct_post_process=False)
         assert pred == expected

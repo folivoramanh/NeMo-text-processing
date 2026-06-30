@@ -1,0 +1,33 @@
+{
+  "name": "Serial TN coverage profile",
+  "extends": "generic",
+  "description": "Input-shape and boundary checklist for serial TN tests.",
+  "scenarios": [
+    {
+      "key": "alphanumeric_serial",
+      "description": "Alphanumeric serial with letters and digits.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Za-z]+[- ]?\\d+[A-Za-z0-9-]*"},
+      "suggested_input": "A123B"
+    },
+    {
+      "key": "hyphenated_serial",
+      "description": "Hyphenated serial or code.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Za-z0-9]+(-[A-Za-z0-9]+)+"},
+      "suggested_input": "AB-123-CD"
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "key": "telephone_like_serial",
+      "description": "Hyphenated digit groups may be telephone numbers rather than serials.",
+      "detector": {"type": "regex_fullmatch", "pattern": "\\d{2,4}(-\\d{2,4}){2,}"},
+      "suggested_input": "AB-123-CD"
+    },
+    {
+      "key": "word_like_serial",
+      "description": "Pure letters should usually remain word/abbreviation unless serial context exists.",
+      "detector": {"type": "regex_fullmatch", "pattern": "[A-Za-z]+"},
+      "suggested_input": "A123B"
+    }
+  ]
+}
