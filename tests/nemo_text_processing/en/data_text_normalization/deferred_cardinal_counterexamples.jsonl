@@ -1,0 +1,51 @@
+{"text": "133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "1-413-te-b-1-5", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "one,[0],133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "https://a.b/1\u202f133-ABC\u202fa@b.com\u202fO'Reilly\u202fhello", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "0\u00a0hello\u00a0133-ABC\u00a0\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb\u00a0twenty", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u65e5\u672c\u8a9e  12  tha\u0301ng  O'Reilly  twenty  \ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb  133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u1112\u1161\u11ab\u1100\u116e\u11a8\u110b\u1165\ntha\u0301ng\n133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\thai", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "one\u00a0th\u00e1ng\u00a0[0]\u00a0\u65e5\u672c\u8a9e\u00a0\u65e5\u672c\u8a9e\u00a0th\u00e1ng\u00a0133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\u00a0\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "12:30/https://a.b/1/hello/hai/ng\u00e0y/12kg", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "no\u0323\u0302i\t\u65e5\u672c\u8a9e\t1st\t133-ABC\t1/2", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb 133-ABC m\u1ed9t [12] 1/2 12kg", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "https://a.b/1\u202f\"", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\u00a0hello\u00a0n\u1ed9i\u00a0O'Reilly\u00a0$2.50\u00a0\"\u00a0$2.50\u00a012kg", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u4e2d\u6587\n\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb\nhello\ntha\u0301ng\n133-ABC\n\"\n133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "12:30\u200b\ud55c\uad6d\uc5b4\u200bhttps://a.b/1\u200b\"\u200bO'Reilly", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "th\u00e1ng a@b.com \u65e5\u672c\u8a9e 133-ABC th\u00e1ng", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC  133-ABC  hello  no\u0323\u0302i  [0]  one  $2.50", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\thttps://a.b/1", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "a@b.com\u202f$2.50\u202fhttps://a.b/1\u202fa@b.com\u202f1st\u202f$2.50\u202fhai\u202f\ud55c\uad6d\uc5b4", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "nga\u0300y\u00a0\u4e2d\u6587\u00a0133-ABC\u00a0\u1112\u1161\u11ab\u1100\u116e\u11a8\u110b\u1165\u00a012kg\u00a01/2\u00a0no\u0323\u0302i", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "m\u01b0\u01a1i  133-ABC  1st  [12]  twenty  \u4e2d\u6587  [12]  \u65e5\u672c\u8a9e", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "ng\u00e0y\nth\u00e1ng\n\u65e5\u672c\u8a9e\n12kg\n133-ABC\none\n12:30\n\ud55c\uad6d\uc5b4", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC  12  a@b.com", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "mo\u0323\u0302t/https://a.b/1/hai/https://a.b/1/\u1112\u1161\u11ab\u1100\u116e\u11a8\u110b\u1165", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "[12]\u00a0133-ABC\u00a0[12]\u00a0\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "O'Reilly\u00a0\"\u00a0133-ABC\u00a0one\u00a012:30\u00a0\\\u00a012", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u65e5\u672c\u8a9e\t133-ABC\thttps://a.b/1\t[12]\t\"\t12kg\ttha\u0301ng\t\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "one,133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "m\u01b0\u01a1i\t133-ABC\tth\u00e1ng", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "mu\u031bo\u031bi\nhttps://a.b/1\n133-ABC\n12:30\nhai\n\u4e2d\u6587", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "hai\u202fhello\u202f$2.50\u202fO'Reilly\u202f12\u202fhttps://a.b/1\u202f\"\u202f[0]", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u65e5\u672c\u8a9e 12:30 [12] hello 12:30 hello 133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\\-0-1st-\u4e2d\u6587-133-ABC-[12]-[0]", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\u00a0\u00e9\u00a0\u00e9", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u00e9  133-ABC  12kg  a@b.com  m\u1ed9t  n\u1ed9i  O'Reilly  \u4e2d\u6587", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "one  1st  O'Reilly  \"  [12]  133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\u00a0$2.50\u00a0a@b.com\u00a0O'Reilly\u00a0\u4e2d\u6587\u00a012:30\u00a0h\u00e0\u00a01st", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "0  e\u0301  133-ABC  [12]  tha\u0301ng  ha\u0300", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "m\u01b0\u01a1i  133-ABC  \u00e9  12kg  \u00e9  O'Reilly", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb \u4e2d\u6587 n\u1ed9i $2.50 \u00e9 12kg 133-ABC \ud55c\uad6d\uc5b4", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u4e2d\u6587\n12\n12:30\n133-ABC\nng\u00e0y\n[0]", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "https://a.b/1/\u4e2d\u6587", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u00e9\nhai\n12:30\n0\n133-ABC\ntwenty\nm\u01b0\u01a1i", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\"  \u00e9  1st  133-ABC  hello  twenty  one  1st", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC\u00a0\u65e5\u672c\u8a9e\u00a0133-ABC\u00a0https://a.b/1\u00a0\u65e5\u672c\u8a9e", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\u4e2d\u6587-no\u0323\u0302i-O'Reilly-12-\u1112\u1161\u11ab\u1100\u116e\u11a8\u110b\u1165-0-\"-133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "O'Reilly\n\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb\nhai\n12kg\nhai\n133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "\ud83e\uddd1\ud83c\udffd\u200d\ud83d\udcbb\tmu\u031bo\u031bi\t$2.50\t[12]\thttps://a.b/1\tmu\u031bo\u031bi\t133-ABC", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}
+{"text": "133-ABC  a@b.com", "post_process": true, "punct_pre_process": false, "punct_post_process": false, "source": "counterexample-replay"}

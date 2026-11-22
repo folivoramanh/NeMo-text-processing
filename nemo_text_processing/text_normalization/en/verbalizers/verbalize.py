@@ -37,12 +37,19 @@ class VerbalizeFst(GraphFst):
     Args:
         deterministic: if True will provide a single transduction option,
             for False multiple options (used for audio-based normalization)
+        defer_cardinal: experimental; requires a matching deferred-cardinal tagger.
     """
 
-    def __init__(self, deterministic: bool = True):
+    def __init__(self, deterministic: bool = True, defer_cardinal: bool = False):
         super().__init__(name="verbalize", kind="verbalize", deterministic=deterministic)
         cardinal = CardinalFst(deterministic=deterministic)
         cardinal_graph = cardinal.fst
+        if defer_cardinal:
+            if not deterministic:
+                raise ValueError('Deferred cardinal verbalization currently supports deterministic TN only.')
+            from nemo_text_processing.text_normalization.en.taggers.cardinal import CardinalFst as CardinalTagger
+
+            cardinal_graph = CardinalFst(number_fst=CardinalTagger(deterministic=True).final_graph).fst
         decimal = DecimalFst(cardinal=cardinal, deterministic=deterministic)
         decimal_graph = decimal.fst
         ordinal = OrdinalFst(deterministic=deterministic)

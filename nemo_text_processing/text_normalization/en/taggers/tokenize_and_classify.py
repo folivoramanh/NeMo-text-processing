@@ -61,6 +61,7 @@ class ClassifyFst(GraphFst):
         cache_dir: path to a dir with .far grammar file. Set to None to avoid using cache.
         overwrite_cache: set to True to overwrite .far files
         whitelist: path to a file with whitelist replacements
+        defer_cardinal: experimental; requires a matching deferred-cardinal verbalizer.
     """
 
     def __init__(
@@ -70,16 +71,20 @@ class ClassifyFst(GraphFst):
         cache_dir: str = None,
         overwrite_cache: bool = False,
         whitelist: str = None,
+        defer_cardinal: bool = False,
     ):
         super().__init__(name="tokenize_and_classify", kind="classify", deterministic=deterministic)
+        if defer_cardinal and not deterministic:
+            raise ValueError('Deferred cardinal verbalization currently supports deterministic TN only.')
 
         far_file = None
         if cache_dir is not None and cache_dir != "None":
             os.makedirs(cache_dir, exist_ok=True)
             whitelist_file = os.path.basename(whitelist) if whitelist else ""
+            cache_variant = '_raw_cardinal' if defer_cardinal else ''
             far_file = os.path.join(
                 cache_dir,
-                f"en_tn_{deterministic}_deterministic_{input_case}_{whitelist_file}_tokenize.far",
+                f"en_tn_{deterministic}_deterministic_{input_case}_{whitelist_file}{cache_variant}_tokenize.far",
             )
         if not overwrite_cache and far_file and os.path.exists(far_file):
             self.fst = pynini.Far(far_file, mode="r")["tokenize_and_classify"]
@@ -88,7 +93,7 @@ class ClassifyFst(GraphFst):
             logger.info(f"Creating ClassifyFst grammars.")
 
             start_time = time.time()
-            cardinal = CardinalFst(deterministic=deterministic)
+            cardinal = CardinalFst(deterministic=deterministic, defer_verbalization=defer_cardinal)
             cardinal_graph = cardinal.fst
             logger.debug(f"cardinal: {time.time() - start_time: .2f}s -- {cardinal_graph.num_states()} nodes")
 

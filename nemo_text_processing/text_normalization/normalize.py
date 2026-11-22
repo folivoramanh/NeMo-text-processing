@@ -39,6 +39,7 @@ from nemo_text_processing.text_normalization.data_loader_utils import (
     pre_process,
     write_file,
 )
+from nemo_text_processing.text_normalization.lookahead import LookaheadTagger
 from nemo_text_processing.text_normalization.preprocessing_utils import additional_split
 from nemo_text_processing.text_normalization.token_parser import PRESERVE_ORDER_KEY, TokenParser
 from nemo_text_processing.utils.logging import logger
@@ -98,6 +99,7 @@ class Normalizer:
             Note: punct_post_process flag in normalize() supports all languages.
         max_number_of_permutations_per_split: a maximum number
             of permutations which can be generated from input sequence of tokens.
+        lookahead_dir: optional exported lookahead tagger directory, built for this language and input case.
         verbose: whether to print intermediate meta information
     """
 
@@ -112,8 +114,11 @@ class Normalizer:
         lm: bool = False,
         post_process: bool = True,
         max_number_of_permutations_per_split: int = 729,
+        lookahead_dir: str = None,
     ):
         assert input_case in ["lower_cased", "cased"]
+        if lookahead_dir and (not deterministic or lm or whitelist):
+            raise ValueError('Lookahead requires deterministic TN; bake any whitelist into the exported tagger.')
 
         self.post_processor = None
 
@@ -178,12 +183,16 @@ class Normalizer:
             raise NotImplementedError(f"Language {lang} has not been supported yet.")
 
         self.input_case = input_case
-        self.tagger = ClassifyFst(
-            input_case=self.input_case,
-            deterministic=deterministic,
-            cache_dir=cache_dir,
-            overwrite_cache=overwrite_cache,
-            whitelist=whitelist,
+        self.tagger = (
+            LookaheadTagger(lookahead_dir, language=lang, input_case=input_case, mode='tn')
+            if lookahead_dir
+            else ClassifyFst(
+                input_case=self.input_case,
+                deterministic=deterministic,
+                cache_dir=cache_dir,
+                overwrite_cache=overwrite_cache,
+                whitelist=whitelist,
+            )
         )
 
         self.verbalizer = VerbalizeFinalFst(
@@ -628,6 +637,8 @@ class Normalizer:
 
         Returns: tagged lattice
         """
+        if isinstance(self.tagger, LookaheadTagger):
+            return self.tagger.compose(text)
         lattice = text @ self.tagger.fst
         return lattice
 
@@ -763,6 +774,7 @@ def parse_args():
         type=str,
     )
     parser.add_argument("--n_jobs", default=-2, type=int, help="The maximum number of concurrently running jobs")
+    parser.add_argument('--lookahead_dir', help='Directory containing an exported OpenFst lookahead tagger')
     parser.add_argument("--batch_size", default=200, type=int, help="Number of examples for each process")
     parser.add_argument(
         "--max_number_of_permutations_per_split",
@@ -788,6 +800,7 @@ if __name__ == "__main__":
         whitelist=whitelist,
         lang=args.language,
         max_number_of_permutations_per_split=args.max_number_of_permutations_per_split,
+        lookahead_dir=args.lookahead_dir,
     )
     start_time = perf_counter()
     if args.input_string:

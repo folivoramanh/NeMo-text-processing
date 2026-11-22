@@ -36,10 +36,14 @@ class CardinalFst(GraphFst):
     Args:
         deterministic: if True will provide a single transduction option,
             for False multiple transduction are generated (used for audio-based normalization)
+        defer_verbalization: experimental; retain raw digits and classification costs in self.fst.
+            Other numeric subgraphs keep their normal spoken outputs.
     """
 
-    def __init__(self, deterministic: bool = True, lm: bool = False):
+    def __init__(self, deterministic: bool = True, lm: bool = False, defer_verbalization: bool = False):
         super().__init__(name="cardinal", kind="classify", deterministic=deterministic)
+        if defer_verbalization and (not deterministic or lm):
+            raise ValueError('Deferred cardinal verbalization currently supports deterministic TN without an LM.')
 
         self.lm = lm
         self.deterministic = deterministic
@@ -122,6 +126,11 @@ class CardinalFst(GraphFst):
             final_graph |= pynini.compose(four_digit_comma_graph.optimize(), final_graph).optimize()
 
         self.final_graph = final_graph
+        if defer_verbalization:
+            # Tropical input projection retains the best classification cost
+            # for each numeric spelling, while leaving its digits in the tag.
+            # Other semiotic classes still use the original spoken-number graphs.
+            final_graph = pynini.project(final_graph, 'input').optimize()
         final_graph = optional_minus_graph + pynutil.insert("integer: \"") + final_graph + pynutil.insert("\"")
         final_graph = self.add_tokens(final_graph)
         self.fst = final_graph.optimize()

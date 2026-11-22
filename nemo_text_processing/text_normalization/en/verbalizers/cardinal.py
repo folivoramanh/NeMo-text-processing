@@ -26,9 +26,10 @@ class CardinalFst(GraphFst):
     Args:
         deterministic: if True will provide a single transduction option,
             for False multiple options (used for audio-based normalization)
+        number_fst: optional raw-number-to-words graph for the experimental top-level cardinal branch.
     """
 
-    def __init__(self, deterministic: bool = True):
+    def __init__(self, deterministic: bool = True, number_fst: 'pynini.Fst' = None):
         super().__init__(name="cardinal", kind="verbalize", deterministic=deterministic)
 
         self.optional_sign = pynini.cross("negative: \"true\"", "minus ")
@@ -38,7 +39,7 @@ class CardinalFst(GraphFst):
 
         self.optional_sign = pynini.closure(self.optional_sign + delete_space, 0, 1)
 
-        integer = pynini.closure(NEMO_NOT_QUOTE)
+        integer = pynini.closure(NEMO_NOT_QUOTE) if number_fst is None else number_fst
 
         self.integer = delete_space + pynutil.delete("\"") + integer + pynutil.delete("\"")
         integer = pynutil.delete("integer:") + self.integer
