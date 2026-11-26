@@ -144,15 +144,28 @@ OpenFst 1.8.3, against personal fork base `255bbf8b` plus this change.
 
 | Check | Baseline | Raw digits | Raw digits + lookahead |
 | --- | ---: | ---: | ---: |
-| Existing English pytest suite (audio excluded; includes ITN) | 1,555 passed | 1,555 passed | 1,555 passed |
+| English pytest suite (dedicated audio included; includes ITN) | 1,613 passed | 1,613 passed | 1,613 passed |
+| Component/API pytest suite | 438 passed | 438 passed | 438 passed |
+| Full CPU repository pytest suite | 9,707 passed, 206 failed | 9,707 passed, 206 failed | 9,707 passed, 206 failed |
 | Written regression, ≤12 digits | Reference | 0/505 differences | 0/505 differences |
 | Selected counterexample replay | Reference | 0/51 differences | 0/51 differences |
 | Generated boundaries and contexts | Reference | 0/2,371 differences | 0/2,371 differences |
 
-The default English suite plus component/API tests passed 1,983 tests in the
-first full run. After final artifact/cache hardening, all 438 component/API
-tests passed again. The two historical serial failures and eight historical
-replay differences now return the baseline output through fallback; see the
+The full CPU runs collect all 9,913 tests without file exclusions or marker
+filters, using per-language test caches and uncached Kinyarwanda to avoid
+existing cache defects. Every mode has zero skipped tests or collection errors.
+All 206 failed test IDs and messages match across modes and reproduce exactly
+on the unchanged fork base (9,269 passed, 206 failed among its 9,475 stock tests).
+They affect Italian, Russian, Swedish, Vietnamese, and Chinese. The full suite
+is not entirely green; this proposal documents those baseline failures and
+introduces no new failed test IDs.
+
+The earlier 1,555 result excluded 58 dedicated English audio tests. Its count
+was 509 deterministic TN items, 1,041 ITN items, four inactive Roman items, and
+one sentence-split item. The [full pytest report](FULL_PYTEST_VALIDATION.md)
+records this breakdown, exact commands, cache setup, optional-audio caveats,
+and baseline-failure evidence. The two historical serial failures and eight
+historical replay differences return the baseline output through fallback; see the
 [complete historical difference table](deferred_cardinal_comparison.md).
 
 Latency cells show **mean / p95 milliseconds**, including guards and retries.
@@ -230,22 +243,20 @@ punctuation test settings, and excludes construction/loading/conversion from
 timings. `--without-lookahead` omits the optional plugin. Nonzero status means a
 parity, expectation, or execution-error gate failed; inspect each separately.
 
-Run stock English tests sequentially, retaining their constructor/call settings:
+Run the full CPU pytest matrix sequentially, retaining test constructor and
+call settings. These commands have no file exclusions or marker filters;
+the shared baseline failures described above retain a nonzero exit status.
 
 ```bash
-python -m pytest tests/nemo_text_processing/en \
-  --ignore=tests/nemo_text_processing/en/test_normalization_with_audio.py \
-  --cpu --use_local_test_data --tn_cache_dir "$WORK_DIR/stock-cache"
+python -m pytest tests/nemo_text_processing --cpu --use_local_test_data \
+  --tn_cache_dir "$WORK_DIR/stock-cache" \
+  -p tools.text_processing_deployment.deferred_cardinal_pytest --deferred-isolate-caches
 for variant in raw raw-lookahead; do
-  python -m pytest tests/nemo_text_processing/en \
-    --ignore=tests/nemo_text_processing/en/test_normalization_with_audio.py \
-    --cpu --use_local_test_data --tn_cache_dir "$WORK_DIR/stock-cache" \
-    -p tools.text_processing_deployment.deferred_cardinal_pytest \
+  python -m pytest tests/nemo_text_processing --cpu --use_local_test_data \
+    --tn_cache_dir "$WORK_DIR/stock-cache" \
+    -p tools.text_processing_deployment.deferred_cardinal_pytest --deferred-isolate-caches \
     --deferred-runtime "$variant" --deferred-work-dir "$WORK_DIR/$variant-tests"
 done
-
-# Component, pairing, public API, ambiguity, and worker tests.
-python -m pytest tests/nemo_text_processing/test_*.py --cpu --use_local_test_data
 ```
 
 ## Remaining acceptance gates

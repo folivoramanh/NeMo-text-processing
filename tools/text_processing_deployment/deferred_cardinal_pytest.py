@@ -12,11 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Opt-in English regression adapter for raw and raw-plus-lookahead grammars."""
+"""Opt-in English regression modes and full-suite cache isolation.
+
+``--deferred-isolate-caches`` also works without ``--deferred-runtime`` for a
+baseline run. Only Normalizer/InverseNormalizer constructors explicitly passed
+the common ``--tn_cache_dir`` are redirected to ``<cache>/isolated/<language>``.
+RW uses its supported uncached path (``cache_dir=None``) because its cache
+writer/reader disagree about archive keys. Other constructor arguments and
+component tests' independent cache paths are preserved; no tests are filtered.
+"""
 
 import copy
+import functools
+import inspect
 import tempfile
 from pathlib import Path
+
+import pytest
 
 from nemo_text_processing.text_normalization.normalize import Normalizer
 from nemo_text_processing.text_normalization.token_parser import TokenParser
@@ -26,6 +38,57 @@ from tools.text_processing_deployment.benchmark_deferred_cardinal import deferre
 def pytest_addoption(parser):
     parser.addoption('--deferred-runtime', choices=['raw', 'raw-lookahead'])
     parser.addoption('--deferred-work-dir', type=Path)
+    parser.addoption(
+        '--deferred-isolate-caches',
+        action='store_true',
+        help='Isolate the explicit --tn_cache_dir by language; use uncached RW. Also supports baseline runs.',
+    )
+
+
+def _isolated_constructor(cls, cache_root):
+    original = cls.__init__
+    signature = inspect.signature(original)
+
+    @functools.wraps(original)
+    def initialize(self, *args, **kwargs):
+        bound = signature.bind(self, *args, **kwargs)
+        supplied_cache = bound.arguments.get('cache_dir')
+        if supplied_cache is not None and str(supplied_cache) != 'None':
+            if Path(supplied_cache).resolve() == cache_root:
+                language = bound.arguments.get('lang', signature.parameters['lang'].default)
+                bound.arguments['cache_dir'] = None if language == 'rw' else str(cache_root / 'isolated' / language)
+        return original(*bound.args, **bound.kwargs)
+
+    initialize.__signature__ = signature
+    return original, initialize
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    if not config.getoption('--deferred-isolate-caches'):
+        return
+    cache_dir = config.getoption('tn_cache_dir', default=None)
+    if cache_dir is None or str(cache_dir) == 'None':
+        raise pytest.UsageError('--deferred-isolate-caches requires an explicit --tn_cache_dir')
+    if getattr(config, '_deferred_cache_wrappers', None):
+        return
+    from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
+
+    cache_root = Path(cache_dir).resolve()
+    config._deferred_cache_root = cache_root
+    config._deferred_cache_wrappers = []
+    for cls in (Normalizer, InverseNormalizer):
+        original, wrapped = _isolated_constructor(cls, cache_root)
+        cls.__init__ = wrapped
+        config._deferred_cache_wrappers.append((cls, original, wrapped))
+
+
+def pytest_unconfigure(config):
+    wrappers = getattr(config, '_deferred_cache_wrappers', [])
+    while wrappers:
+        cls, original, wrapped = wrappers.pop()
+        if cls.__init__ is wrapped:
+            cls.__init__ = original
 
 
 def pytest_collection_modifyitems(config, items):
@@ -66,6 +129,10 @@ def pytest_collection_modifyitems(config, items):
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    if hasattr(config, '_deferred_cache_root'):
+        terminalreporter.write_line(
+            f'Language cache isolation: {config._deferred_cache_root}/isolated/<language>; RW uses cache_dir=None.'
+        )
     if hasattr(config, '_deferred_normalizer_count'):
         terminalreporter.write_line(
             f"{config.getoption('--deferred-runtime')} enabled for {config._deferred_normalizer_count} English TN instances."

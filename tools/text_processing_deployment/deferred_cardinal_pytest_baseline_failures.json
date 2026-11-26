@@ -1,0 +1,886 @@
+{
+  "validation_date": "2026-11-26",
+  "unchanged_base_commit": "255bbf8b584dd869e95e8eb0abe0f4c10bfbf938",
+  "runtime_implementation_commit": "f7c5ee400fffa62b34aaf16bfc1f9478491a7458",
+  "environment": {
+    "platform": "macOS arm64",
+    "python": "3.12.2",
+    "pytest": "8.4.0",
+    "pynini": "2.1.6.post1",
+    "openfst": "1.8.3"
+  },
+  "configuration": {
+    "test_root": "tests/nemo_text_processing",
+    "cpu": true,
+    "file_exclusions": [],
+    "marker_filter": null,
+    "optional_run_audio_based": false,
+    "language_isolated_caches": true,
+    "rw_cache_dir": null
+  },
+  "unchanged_base": {
+    "passed": 9269,
+    "failed": 206,
+    "skipped": 0,
+    "errors": 0
+  },
+  "feature_modes": {
+    "baseline": {
+      "passed": 9707,
+      "failed": 206,
+      "skipped": 0,
+      "errors": 0,
+      "new_failed_test_ids": [],
+      "identical_failure_messages_to_unchanged_base": true
+    },
+    "raw": {
+      "passed": 9707,
+      "failed": 206,
+      "skipped": 0,
+      "errors": 0,
+      "new_failed_test_ids": [],
+      "identical_failure_messages_to_unchanged_base": true
+    },
+    "raw-lookahead": {
+      "passed": 9707,
+      "failed": 206,
+      "skipped": 0,
+      "errors": 0,
+      "new_failed_test_ids": [],
+      "identical_failure_messages_to_unchanged_base": true
+    }
+  },
+  "language_failure_counts": {
+    "it": 4,
+    "ru": 5,
+    "sv": 2,
+    "vi": 49,
+    "zh": 146
+  },
+  "failures": [
+    {
+      "test_id": "tests.nemo_text_processing.it.test_electronic.TestChar::test_norm_char_00_Trovateci_su_mail_university_edu_",
+      "assertion_message": "AssertionError: assert 'Trovateci su...y punto edu .' == 'Trovateci su... y punto edu.'\n  \n  Skipping 46 identical leading characters in diff, use -v to show\n  -  punto edu.\n  +  punto edu .\n  ?           +"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.it.test_electronic.TestChar::test_norm_char_01_Trovateci_su_mail_nasa_gov_",
+      "assertion_message": "AssertionError: assert 'Trovateci su...a punto gov .' == 'Trovateci su... a punto gov.'\n  \n  Skipping 34 identical leading characters in diff, use -v to show\n  -  punto gov.\n  +  punto gov .\n  ?           +"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.it.test_electronic.TestChar::test_norm_char_02_Trovateci_su_mail_nasa_mx_",
+      "assertion_message": "AssertionError: assert 'Trovateci su...a punto m x .' == 'Trovateci su... a punto m x.'\n  \n  Skipping 34 identical leading characters in diff, use -v to show\n  -  punto m x.\n  +  punto m x .\n  ?           +"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.it.test_electronic.TestChar::test_norm_char_12_visitate_il_sito_https_www_nvidia_com_",
+      "assertion_message": "AssertionError: assert 'visitate il ...a punto com .' == 'visitate il ...ia punto com.'\n  \n  Skipping 67 identical leading characters in diff, use -v to show\n  -  punto com.\n  +  punto com .\n  ?           +"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.ru.test_ru_normalization.TestRuNormalizeWithAudio::test_norm_cardinal_04__",
+      "assertion_message": "AssertionError: assert 'две тысячи триста' in {'вторая триста', 'второе триста', 'второй триста', 'втором триста', 'второму триста', 'вторую триста', ...}"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.ru.test_ru_normalization.TestRuNormalizeWithAudio::test_norm_date_3__",
+      "assertion_message": "AssertionError: True\nassert 'шестое марта тысяча шестого года' in {'шестого марта одна тысяча шестого годе', 'шестого марта одной тысячи шестого год', 'шестого марта одной тысячи шесто...а одной тысячи шестого годом', 'шестого марта одной тысячи шестой годе', 'шестого марта одной тысячи шестой году', ...}"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.ru.test_ru_normalization.TestRuNormalizeWithAudio::test_norm_decimal_02__",
+      "assertion_message": "AssertionError: assert 'одними целых три десятых' in {'один целая тремя десятая', 'один целая трех десятая', 'один целая три десятая', 'один целая три десятые', 'один целая три десятых', 'один целого три десятая', ...}"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.ru.test_ru_normalization.TestRuNormalizeWithAudio::test_norm_electronic_3__",
+      "assertion_message": "AssertionError: assert 'адрес эй дефис один точка би три нижнее подчеркивание си амперсанд тире ди собака джи эм эй четыре ай тире эл точка ком тест' in {'адрес эй дефис один точка би три знак подчеркивания си амперсанд дефис ди собака джи эм эй четыре ай дефис эл точка ...ефис один точка би три знак подчеркивания си амперсанд тире ди собака джи эм эй четыре ай тире эл точка ком тест', ...}"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.ru.test_ru_normalization.TestRuNormalizeWithAudio::test_norm_money_8__",
+      "assertion_message": "AssertionError: True\nassert 'одна целая двадцать три сотых миллиарда рублей' in {'один целая двадцать три сотая миллиарда рублей', 'один целая двадцать три сотая миллиарда рубля', 'один целая двадца...лиарда рублях', 'один целая двадцать три сотые миллиарда рублей', 'один целая двадцать три сотых миллиарда рубли', ...}"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.sv.test_whitelist.TestWhitelist::test_denorm_0_sankt_erik",
+      "assertion_message": "assert 's:t\" } tokens { name: \"erik' == 's:t erik'\n  \n  - s:t erik\n  + s:t\" } tokens { name: \"erik"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.sv.test_whitelist.TestWhitelist::test_norm_0_s_t_erik",
+      "assertion_message": "assert 'sankt\" } tok...{ name: \"erik' == 'sankt erik'\n  \n  - sankt erik\n  + sankt\" } tokens { name: \"erik"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_cardinal.TestCardinal::test_denorm_82_ba_ngh_n_n_m",
+      "assertion_message": "AssertionError: assert 'ba nghìn năm' == '3000 năm'\n  \n  - 3000 năm\n  + ba nghìn năm"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_cardinal.TestCardinal::test_denorm_83_b_y_ng_n_n_m",
+      "assertion_message": "AssertionError: assert 'bẩy ngàn năm' == '7000 năm'\n  \n  - 7000 năm\n  + bẩy ngàn năm"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_cardinal.TestCardinal::test_denorm_84_s_u_tri_u_n_m",
+      "assertion_message": "AssertionError: assert 'sáu triệu năm' == '6 triệu năm'\n  \n  - 6 triệu năm\n  ? ^\n  + sáu triệu năm\n  ? ^^^"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_cardinal.TestCardinal::test_denorm_88_m_t_tr_m_m_t",
+      "assertion_message": "AssertionError: assert 'một trăm một' == '100 một'\n  \n  - 100 một\n  + một trăm một"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_00_hai_t_th_ng_b_y_n_m_hai_ngh_n_m_i_ba",
+      "assertion_message": "assert '24 tháng 7\" year: \"2013' == '24 tháng 7 năm 2013'\n  \n  - 24 tháng 7 năm 2013\n  + 24 tháng 7\" year: \"2013"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_01_ng_y_hai_m_i_t_th_ng_b_y_n_m_hai_kh_ng_m_i_ba",
+      "assertion_message": "AssertionError: assert 'ngày hai mươ...không mười ba' == 'ngày 24 tháng 7 năm 2013'\n  \n  - ngày 24 tháng 7 năm 2013\n  + ngày hai mươi tư tháng bẩy năm hai không mười ba"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_02_m_ng_m_t_th_ng_m_t_n_m_m_t_ch_n_ch_n_ch_n",
+      "assertion_message": "AssertionError: assert 'mùng một thá...hín chín chín' == 'mùng 1 tháng 1 năm 1999'\n  \n  - mùng 1 tháng 1 năm 1999\n  + mùng một tháng một năm một chín chín chín"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_03_ng_y_ba_m_i_th_ng_t_",
+      "assertion_message": "AssertionError: assert 'ngày ba mươi tháng tư' == 'ngày 30 tháng 4'\n  \n  - ngày 30 tháng 4\n  + ngày ba mươi tháng tư"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_05_ng_y_ba_m_i_th_ng_s_u",
+      "assertion_message": "AssertionError: assert 'ngày ba mươi tháng sáu' == 'ngày 30 tháng 6'\n  \n  - ngày 30 tháng 6\n  + ngày ba mươi tháng sáu"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_09_th_ng_m_i_n_m_hai_ng_n_linh_ch_n",
+      "assertion_message": "assert 'tháng 10\" year: \"2009' == 'tháng 10 năm 2009'\n  \n  - tháng 10 năm 2009\n  + tháng 10\" year: \"2009"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_14_h_c_k_n_y_s_k_t_th_c_v_o_th_ng_t_ng_y_m_i_th_ng_n_m_l_t_ng_k_t",
+      "assertion_message": "AssertionError: assert 'học kỳ này s...m là tổng kết' == 'học kỳ này s...5 là tổng kết'\n  \n  - học kỳ này sẽ kết thúc vào tháng 4 ngày 10 tháng 5 là tổng kết\n  ?                                  ^      ^^       ^\n  + học kỳ này sẽ kết thúc vào tháng tư ngày mười tháng năm là tổng kết\n  ?                                  ^^      ^^^^       ^^^"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_date.TestDate::test_denorm_15_h_c_k_n_y_s_k_t_th_c_v_o_th_ng_n_m_ng_y_m_t_th_ng_s_u_l_t_ng_k_t",
+      "assertion_message": "AssertionError: assert 'học kỳ này s...u là tổng kết' == 'học kỳ này s...6 là tổng kết'\n  \n  - học kỳ này sẽ kết thúc vào tháng năm ngày 1 tháng 6 là tổng kết\n  ?                                           ^       ^\n  + học kỳ này sẽ kết thúc vào tháng năm ngày một tháng sáu là tổng kết\n  ?                                           ^^^       ^^^"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_00_kh_ng_ph_y_hai_tri_u",
+      "assertion_message": "assert '0\" fractiona...ntity: \"triệu' == '0.2 triệu'\n  \n  - 0.2 triệu\n  + 0\" fractional_part: \"2\" quantity: \"triệu"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_01_m_t_tri_u_hai",
+      "assertion_message": "assert '1\" quantity:...onal_part: \"2' == '1.2 triệu'\n  \n  - 1.2 triệu\n  + 1\" quantity: \"triệu\" fractional_part: \"2"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_02_m_i_t_m_v_n",
+      "assertion_message": "assert '18\" quantity: \"vạn' == '18 vạn'\n  \n  - 18 vạn\n  + 18\" quantity: \"vạn"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_03_b_n_tr_m_s_u_m_i_tri_u",
+      "assertion_message": "assert '460\" quantity: \"triệu' == '460 triệu'\n  \n  - 460 triệu\n  + 460\" quantity: \"triệu"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_04_b_n_tr_m_s_u_tri_u",
+      "assertion_message": "assert '460\" quantity: \"triệu' == '460 triệu'\n  \n  - 460 triệu\n  + 460\" quantity: \"triệu"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_05_b_n_tri_u_s_u",
+      "assertion_message": "assert '4\" quantity:...onal_part: \"6' == '4.6 triệu'\n  \n  - 4.6 triệu\n  + 4\" quantity: \"triệu\" fractional_part: \"6"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_06_m_t_tr_m_hai_m_i_t_",
+      "assertion_message": "assert '120\" quantity: \"tỉ' == '120 tỉ'\n  \n  - 120 tỉ\n  + 120\" quantity: \"tỉ"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_07_m_t_tr_m_hai_m_i_t_",
+      "assertion_message": "assert '120\" quantity: \"tỷ' == '120 tỷ'\n  \n  - 120 tỷ\n  + 120\" quantity: \"tỷ"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_08_m_i_v_n",
+      "assertion_message": "assert '10\" quantity: \"vạn' == '10 vạn'\n  \n  - 10 vạn\n  + 10\" quantity: \"vạn"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_09_s_u_m_i_ph_y_hai_b_n_kh_ng",
+      "assertion_message": "assert '60\" fractional_part: \"240' == '60.240'\n  \n  - 60.240\n  + 60\" fractional_part: \"240"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_10_s_u_m_i_ch_m_hai_t_",
+      "assertion_message": "assert '60\" fractional_part: \"24' == '60.24'\n  \n  - 60.24\n  + 60\" fractional_part: \"24"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_11_t_m_tr_m_m_i_t_m_ch_m_ba_kh_ng_ba",
+      "assertion_message": "assert '818\" fractional_part: \"303' == '818.303'\n  \n  - 818.303\n  + 818\" fractional_part: \"303"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_12_t_m_tr_m_m_i_t_m_ph_y_ba_kh_ng_ba",
+      "assertion_message": "assert '818\" fractional_part: \"303' == '818.303'\n  \n  - 818.303\n  + 818\" fractional_part: \"303"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_13_kh_ng_ph_y_n_m",
+      "assertion_message": "assert '0\" fractional_part: \"5' == '0.5'\n  \n  - 0.5\n  + 0\" fractional_part: \"5"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_14_kh_ng_ch_m_n_m",
+      "assertion_message": "assert '0\" fractional_part: \"5' == '0.5'\n  \n  - 0.5\n  + 0\" fractional_part: \"5"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_15_m_i_tri_u_r_i",
+      "assertion_message": "assert '10\" quantity...onal_part: \"5' == '10.5 triệu'\n  \n  - 10.5 triệu\n  + 10\" quantity: \"triệu\" fractional_part: \"5"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_16_m_i_tri_u_n_m",
+      "assertion_message": "AssertionError: assert 'mười triệu năm' == '10 triệu năm'\n  \n  - 10 triệu năm\n  ? ^^\n  + mười triệu năm\n  ? ^^^^"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_17_m_i_tri_u_m_t",
+      "assertion_message": "assert '10\" quantity...onal_part: \"1' == '10.1 triệu'\n  \n  - 10.1 triệu\n  + 10\" quantity: \"triệu\" fractional_part: \"1"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_18_m_i_tri_u_t_",
+      "assertion_message": "assert '10\" quantity...onal_part: \"4' == '10.4 triệu'\n  \n  - 10.4 triệu\n  + 10\" quantity: \"triệu\" fractional_part: \"4"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_19_ch_n_ch_n_t_ch_n",
+      "assertion_message": "assert '99\" quantity...onal_part: \"9' == '99.9 tỷ'\n  \n  - 99.9 tỷ\n  + 99\" quantity: \"tỷ\" fractional_part: \"9"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_20_tr_ch_n_ch_n_t_ch_n",
+      "assertion_message": "assert '-99\" quantit...onal_part: \"9' == '-99.9 tỷ'\n  \n  - -99.9 tỷ\n  + -99\" quantity: \"tỷ\" fractional_part: \"9"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_21__m_ch_n_ch_n_ch_m_ch_n_l_m_t_",
+      "assertion_message": "assert '-99\" fractio...quantity: \"tỷ' == '-99.95 tỷ'\n  \n  - -99.95 tỷ\n  + -99\" fractional_part: \"95\" quantity: \"tỷ"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_22_hai_m_i_ch_m_t_",
+      "assertion_message": "assert '20\" fractional_part: \"4' == '20.4'\n  \n  - 20.4\n  + 20\" fractional_part: \"4"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_23_m_i_hai_ch_m_m_t",
+      "assertion_message": "AssertionError: assert 'mười hai chấm mốt' == '12 chấm mốt'\n  \n  - 12 chấm mốt\n  + mười hai chấm mốt"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_decimal.TestDecimal::test_denorm_24_ch_n_tr_m_ch_n_ba_ch_m_l_m",
+      "assertion_message": "AssertionError: assert 'chín trăm chín ba chấm lăm' == '993 chấm lăm'\n  \n  - 993 chấm lăm\n  + chín trăm chín ba chấm lăm"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_measure.TestMeasure::test_denorm_02_n_m_m_i_s_u_ph_y_ba_ki_l_m_t_vu_ng",
+      "assertion_message": "assert '56\" fractional_part: \"3 km²' == '56.3 km²'\n  \n  - 56.3 km²\n  + 56\" fractional_part: \"3 km²"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_01_kh_ng_ph_y_kh_ng_m_t_euro",
+      "assertion_message": "assert '0\" fractional_part: \"01€' == '0.01€'\n  \n  - 0.01€\n  + 0\" fractional_part: \"01€"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_02_kh_ng_ch_m_hai_r_",
+      "assertion_message": "assert '0\" fractional_part: \"2€' == '0.2€'\n  \n  - 0.2€\n  + 0\" fractional_part: \"2€"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_03_kh_ng_ph_y_hai_hai_euro",
+      "assertion_message": "assert '0\" fractional_part: \"22€' == '0.22€'\n  \n  - 0.22€\n  + 0\" fractional_part: \"22€"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_04_hai_ph_y_hai_la_m_",
+      "assertion_message": "assert '2\" fractional_part: \"2$' == '2.2$'\n  \n  - 2.2$\n  + 2\" fractional_part: \"2$"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_05_hai_r_i",
+      "assertion_message": "assert '2$\" fractional_part: \"5' == '2.5$'\n  \n  - 2.5$\n  + 2$\" fractional_part: \"5"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_07_hai_m_i_ch_m_m_t_euro",
+      "assertion_message": "assert '20\" fractional_part: \"1€' == '20.1€'\n  \n  - 20.1€\n  + 20\" fractional_part: \"1€"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_10_n_m_ph_y_s_u_ng",
+      "assertion_message": "assert '5\" fractional_part: \"6₫' == '5.6₫'\n  \n  - 5.6₫\n  + 5\" fractional_part: \"6₫"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_11_hai_m_i_ng_r_i",
+      "assertion_message": "assert '20₫\" fractional_part: \"5' == '20.5₫'\n  \n  - 20.5₫\n  + 20₫\" fractional_part: \"5"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_money.TestMoney::test_denorm_15_kh_ng_ph_y_ba_ringgit",
+      "assertion_message": "assert '0\" fractional_part: \"3RM' == '0.3RM'\n  \n  - 0.3RM\n  + 0\" fractional_part: \"3RM"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_time.TestTime::test_denorm_20_t_m_gi_hai_ba_ph_t_gmt",
+      "assertion_message": "AssertionError: assert 'tám giờ hai ba phút gmt' == '8:23 gmt'\n  \n  - 8:23 gmt\n  + tám giờ hai ba phút gmt"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.vi.test_time.TestTime::test_denorm_21_m_i_l_m_gi_cst",
+      "assertion_message": "AssertionError: assert 'mười lăm giờ cst' == '15h cst'\n  \n  - 15h cst\n  + mười lăm giờ cst"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_00__",
+      "assertion_message": "assert '1798\" month: \"5\" day: \"30年' == '1798年5月30日'\n  \n  - 1798年5月30日\n  + 1798\" month: \"5\" day: \"30年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_01__",
+      "assertion_message": "assert '5\" day: \"30月' == '5月30日'\n  \n  - 5月30日\n  + 5\" day: \"30月"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_02__",
+      "assertion_message": "assert '1798\" month: \"5年' == '1798年5月'\n  \n  - 1798年5月\n  + 1798\" month: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_06__",
+      "assertion_message": "assert '1994\" month: \"1\" day: \"2年' == '1994年1月2日'\n  \n  - 1994年1月2日\n  + 1994\" month: \"1\" day: \"2年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_07__",
+      "assertion_message": "assert '1995\" month: \"2\" day: \"3年' == '1995年2月3日'\n  \n  - 1995年2月3日\n  + 1995\" month: \"2\" day: \"3年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_08__",
+      "assertion_message": "assert '2000\" month: \"3\" day: \"5年' == '2000年3月5日'\n  \n  - 2000年3月5日\n  + 2000\" month: \"3\" day: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_09__",
+      "assertion_message": "assert '2001\" month: \"4\" day: \"6年' == '2001年4月6日'\n  \n  - 2001年4月6日\n  + 2001\" month: \"4\" day: \"6年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_10__",
+      "assertion_message": "assert '1798\" month:...\" era: \"A.D.年' == '公元1798年5月30日'\n  \n  - 公元1798年5月30日\n  + 1798\" month: \"5\" day: \"30\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_11__",
+      "assertion_message": "assert '1835\" era: \"A.D.年' == '公元1835年'\n  \n  - 公元1835年\n  + 1835\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_12__",
+      "assertion_message": "assert '1834\" month: \"8\" era: \"A.D.年' == '公元1834年8月'\n  \n  - 公元1834年8月\n  + 1834\" month: \"8\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_13__",
+      "assertion_message": "assert '1994\" month:...\" era: \"A.D.年' == '公元1994年1月2日'\n  \n  - 公元1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_14__",
+      "assertion_message": "assert '1995\" month:...\" era: \"A.D.年' == '公元1995年2月3日'\n  \n  - 公元1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_15__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_16__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_17__",
+      "assertion_message": "assert '1798\" era: \"B.C.年' == '公元前1798年'\n  \n  - 公元前1798年\n  + 1798\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_18__",
+      "assertion_message": "assert '2809\" era: \"B.C.年' == '公元前2809年'\n  \n  - 公元前2809年\n  + 2809\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_19__",
+      "assertion_message": "assert '1994\" month:...\" era: \"B.C.年' == '公元前1994年1月2日'\n  \n  - 公元前1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_20__",
+      "assertion_message": "assert '1995\" month:...\" era: \"B.C.年' == '公元前1995年2月3日'\n  \n  - 公元前1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_21__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_22__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_23__",
+      "assertion_message": "assert '1934\" month:...\" era: \"B.C.年' == '公元前1934年1月2日'\n  \n  - 公元前1934年1月2日\n  + 1934\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_24__",
+      "assertion_message": "assert '1998\" month:...\" era: \"B.C.年' == '公元前1998年3月3日'\n  \n  - 公元前1998年3月3日\n  + 1998\" month: \"3\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_25__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_26__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_27__",
+      "assertion_message": "assert '1234\" month:...\" era: \"A.D.年' == '公元1234年1月2日'\n  \n  - 公元1234年1月2日\n  + 1234\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_28__",
+      "assertion_message": "assert '2056\" month:...\" era: \"A.D.年' == '公元2056年2月3日'\n  \n  - 公元2056年2月3日\n  + 2056\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_29__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_cardinal.TestCardinal::test_denorm_30__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_00__",
+      "assertion_message": "assert '1798\" month: \"5\" day: \"30年' == '1798年5月30日'\n  \n  - 1798年5月30日\n  + 1798\" month: \"5\" day: \"30年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_01__",
+      "assertion_message": "assert '5\" day: \"30月' == '5月30日'\n  \n  - 5月30日\n  + 5\" day: \"30月"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_02__",
+      "assertion_message": "assert '1798\" month: \"5年' == '1798年5月'\n  \n  - 1798年5月\n  + 1798\" month: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_06__",
+      "assertion_message": "assert '1994\" month: \"1\" day: \"2年' == '1994年1月2日'\n  \n  - 1994年1月2日\n  + 1994\" month: \"1\" day: \"2年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_07__",
+      "assertion_message": "assert '1995\" month: \"2\" day: \"3年' == '1995年2月3日'\n  \n  - 1995年2月3日\n  + 1995\" month: \"2\" day: \"3年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_08__",
+      "assertion_message": "assert '2000\" month: \"3\" day: \"5年' == '2000年3月5日'\n  \n  - 2000年3月5日\n  + 2000\" month: \"3\" day: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_09__",
+      "assertion_message": "assert '2001\" month: \"4\" day: \"6年' == '2001年4月6日'\n  \n  - 2001年4月6日\n  + 2001\" month: \"4\" day: \"6年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_10__",
+      "assertion_message": "assert '1798\" month:...\" era: \"A.D.年' == '公元1798年5月30日'\n  \n  - 公元1798年5月30日\n  + 1798\" month: \"5\" day: \"30\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_11__",
+      "assertion_message": "assert '1835\" era: \"A.D.年' == '公元1835年'\n  \n  - 公元1835年\n  + 1835\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_12__",
+      "assertion_message": "assert '1834\" month: \"8\" era: \"A.D.年' == '公元1834年8月'\n  \n  - 公元1834年8月\n  + 1834\" month: \"8\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_13__",
+      "assertion_message": "assert '1994\" month:...\" era: \"A.D.年' == '公元1994年1月2日'\n  \n  - 公元1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_14__",
+      "assertion_message": "assert '1995\" month:...\" era: \"A.D.年' == '公元1995年2月3日'\n  \n  - 公元1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_15__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_16__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_17__",
+      "assertion_message": "assert '1798\" era: \"B.C.年' == '公元前1798年'\n  \n  - 公元前1798年\n  + 1798\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_18__",
+      "assertion_message": "assert '2809\" era: \"B.C.年' == '公元前2809年'\n  \n  - 公元前2809年\n  + 2809\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_19__",
+      "assertion_message": "assert '1994\" month:...\" era: \"B.C.年' == '公元前1994年1月2日'\n  \n  - 公元前1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_20__",
+      "assertion_message": "assert '1995\" month:...\" era: \"B.C.年' == '公元前1995年2月3日'\n  \n  - 公元前1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_21__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_22__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_23__",
+      "assertion_message": "assert '1934\" month:...\" era: \"B.C.年' == '公元前1934年1月2日'\n  \n  - 公元前1934年1月2日\n  + 1934\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_24__",
+      "assertion_message": "assert '1998\" month:...\" era: \"B.C.年' == '公元前1998年3月3日'\n  \n  - 公元前1998年3月3日\n  + 1998\" month: \"3\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_25__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_26__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_27__",
+      "assertion_message": "assert '1234\" month:...\" era: \"A.D.年' == '公元1234年1月2日'\n  \n  - 公元1234年1月2日\n  + 1234\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_28__",
+      "assertion_message": "assert '2056\" month:...\" era: \"A.D.年' == '公元2056年2月3日'\n  \n  - 公元2056年2月3日\n  + 2056\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_29__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_date.TestDate::test_denorm_30__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_00__",
+      "assertion_message": "assert '1798\" month: \"5\" day: \"30年' == '1798年5月30日'\n  \n  - 1798年5月30日\n  + 1798\" month: \"5\" day: \"30年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_01__",
+      "assertion_message": "assert '5\" day: \"30月' == '5月30日'\n  \n  - 5月30日\n  + 5\" day: \"30月"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_02__",
+      "assertion_message": "assert '1798\" month: \"5年' == '1798年5月'\n  \n  - 1798年5月\n  + 1798\" month: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_06__",
+      "assertion_message": "assert '1994\" month: \"1\" day: \"2年' == '1994年1月2日'\n  \n  - 1994年1月2日\n  + 1994\" month: \"1\" day: \"2年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_07__",
+      "assertion_message": "assert '1995\" month: \"2\" day: \"3年' == '1995年2月3日'\n  \n  - 1995年2月3日\n  + 1995\" month: \"2\" day: \"3年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_08__",
+      "assertion_message": "assert '2000\" month: \"3\" day: \"5年' == '2000年3月5日'\n  \n  - 2000年3月5日\n  + 2000\" month: \"3\" day: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_09__",
+      "assertion_message": "assert '2001\" month: \"4\" day: \"6年' == '2001年4月6日'\n  \n  - 2001年4月6日\n  + 2001\" month: \"4\" day: \"6年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_10__",
+      "assertion_message": "assert '1798\" month:...\" era: \"A.D.年' == '公元1798年5月30日'\n  \n  - 公元1798年5月30日\n  + 1798\" month: \"5\" day: \"30\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_11__",
+      "assertion_message": "assert '1835\" era: \"A.D.年' == '公元1835年'\n  \n  - 公元1835年\n  + 1835\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_12__",
+      "assertion_message": "assert '1834\" month: \"8\" era: \"A.D.年' == '公元1834年8月'\n  \n  - 公元1834年8月\n  + 1834\" month: \"8\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_13__",
+      "assertion_message": "assert '1994\" month:...\" era: \"A.D.年' == '公元1994年1月2日'\n  \n  - 公元1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_14__",
+      "assertion_message": "assert '1995\" month:...\" era: \"A.D.年' == '公元1995年2月3日'\n  \n  - 公元1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_15__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_16__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_17__",
+      "assertion_message": "assert '1798\" era: \"B.C.年' == '公元前1798年'\n  \n  - 公元前1798年\n  + 1798\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_18__",
+      "assertion_message": "assert '2809\" era: \"B.C.年' == '公元前2809年'\n  \n  - 公元前2809年\n  + 2809\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_19__",
+      "assertion_message": "assert '1994\" month:...\" era: \"B.C.年' == '公元前1994年1月2日'\n  \n  - 公元前1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_20__",
+      "assertion_message": "assert '1995\" month:...\" era: \"B.C.年' == '公元前1995年2月3日'\n  \n  - 公元前1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_21__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_22__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_23__",
+      "assertion_message": "assert '1934\" month:...\" era: \"B.C.年' == '公元前1934年1月2日'\n  \n  - 公元前1934年1月2日\n  + 1934\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_24__",
+      "assertion_message": "assert '1998\" month:...\" era: \"B.C.年' == '公元前1998年3月3日'\n  \n  - 公元前1998年3月3日\n  + 1998\" month: \"3\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_25__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_26__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_27__",
+      "assertion_message": "assert '1234\" month:...\" era: \"A.D.年' == '公元1234年1月2日'\n  \n  - 公元1234年1月2日\n  + 1234\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_28__",
+      "assertion_message": "assert '2056\" month:...\" era: \"A.D.年' == '公元2056年2月3日'\n  \n  - 公元2056年2月3日\n  + 2056\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_29__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_decimal.TestDate::test_denorm_30__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_03__",
+      "assertion_message": "assert 'US$\" integer... quantity: \"万' == 'US$1.5万'\n  \n  - US$1.5万\n  + US$\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_17__",
+      "assertion_message": "assert '€\" integer_p... quantity: \"万' == '€1.5万'\n  \n  - €1.5万\n  + €\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_24__",
+      "assertion_message": "assert '£\" integer_p... quantity: \"万' == '£1.5万'\n  \n  - £1.5万\n  + £\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_31__",
+      "assertion_message": "assert '₩\" integer_p... quantity: \"万' == '₩1.5万'\n  \n  - ₩1.5万\n  + ₩\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_38__",
+      "assertion_message": "assert '₹\" integer_p... quantity: \"万' == '₹1.5万'\n  \n  - ₹1.5万\n  + ₹\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_money.TestMoney::test_denorm_45__",
+      "assertion_message": "assert 'JPY¥\" intege... quantity: \"万' == 'JPY¥1.5万'\n  \n  - JPY¥1.5万\n  + JPY¥\" integer_part: \"10.5\" quantity: \"万"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_00__",
+      "assertion_message": "assert '1798\" month: \"5\" day: \"30年' == '1798年5月30日'\n  \n  - 1798年5月30日\n  + 1798\" month: \"5\" day: \"30年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_01__",
+      "assertion_message": "assert '5\" day: \"30月' == '5月30日'\n  \n  - 5月30日\n  + 5\" day: \"30月"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_02__",
+      "assertion_message": "assert '1798\" month: \"5年' == '1798年5月'\n  \n  - 1798年5月\n  + 1798\" month: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_06__",
+      "assertion_message": "assert '1994\" month: \"1\" day: \"2年' == '1994年1月2日'\n  \n  - 1994年1月2日\n  + 1994\" month: \"1\" day: \"2年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_07__",
+      "assertion_message": "assert '1995\" month: \"2\" day: \"3年' == '1995年2月3日'\n  \n  - 1995年2月3日\n  + 1995\" month: \"2\" day: \"3年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_08__",
+      "assertion_message": "assert '2000\" month: \"3\" day: \"5年' == '2000年3月5日'\n  \n  - 2000年3月5日\n  + 2000\" month: \"3\" day: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_09__",
+      "assertion_message": "assert '2001\" month: \"4\" day: \"6年' == '2001年4月6日'\n  \n  - 2001年4月6日\n  + 2001\" month: \"4\" day: \"6年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_10__",
+      "assertion_message": "assert '1798\" month:...\" era: \"A.D.年' == '公元1798年5月30日'\n  \n  - 公元1798年5月30日\n  + 1798\" month: \"5\" day: \"30\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_11__",
+      "assertion_message": "assert '1835\" era: \"A.D.年' == '公元1835年'\n  \n  - 公元1835年\n  + 1835\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_12__",
+      "assertion_message": "assert '1834\" month: \"8\" era: \"A.D.年' == '公元1834年8月'\n  \n  - 公元1834年8月\n  + 1834\" month: \"8\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_13__",
+      "assertion_message": "assert '1994\" month:...\" era: \"A.D.年' == '公元1994年1月2日'\n  \n  - 公元1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_14__",
+      "assertion_message": "assert '1995\" month:...\" era: \"A.D.年' == '公元1995年2月3日'\n  \n  - 公元1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_15__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_16__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_17__",
+      "assertion_message": "assert '1798\" era: \"B.C.年' == '公元前1798年'\n  \n  - 公元前1798年\n  + 1798\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_18__",
+      "assertion_message": "assert '2809\" era: \"B.C.年' == '公元前2809年'\n  \n  - 公元前2809年\n  + 2809\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_19__",
+      "assertion_message": "assert '1994\" month:...\" era: \"B.C.年' == '公元前1994年1月2日'\n  \n  - 公元前1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_20__",
+      "assertion_message": "assert '1995\" month:...\" era: \"B.C.年' == '公元前1995年2月3日'\n  \n  - 公元前1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_21__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_22__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_23__",
+      "assertion_message": "assert '1934\" month:...\" era: \"B.C.年' == '公元前1934年1月2日'\n  \n  - 公元前1934年1月2日\n  + 1934\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_24__",
+      "assertion_message": "assert '1998\" month:...\" era: \"B.C.年' == '公元前1998年3月3日'\n  \n  - 公元前1998年3月3日\n  + 1998\" month: \"3\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_25__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_26__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_27__",
+      "assertion_message": "assert '1234\" month:...\" era: \"A.D.年' == '公元1234年1月2日'\n  \n  - 公元1234年1月2日\n  + 1234\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_28__",
+      "assertion_message": "assert '2056\" month:...\" era: \"A.D.年' == '公元2056年2月3日'\n  \n  - 公元2056年2月3日\n  + 2056\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_29__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_ordinal.TestOrdinal::test_denorm_30__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_00__",
+      "assertion_message": "assert '1798\" month: \"5\" day: \"30年' == '1798年5月30日'\n  \n  - 1798年5月30日\n  + 1798\" month: \"5\" day: \"30年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_01__",
+      "assertion_message": "assert '5\" day: \"30月' == '5月30日'\n  \n  - 5月30日\n  + 5\" day: \"30月"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_02__",
+      "assertion_message": "assert '1798\" month: \"5年' == '1798年5月'\n  \n  - 1798年5月\n  + 1798\" month: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_06__",
+      "assertion_message": "assert '1994\" month: \"1\" day: \"2年' == '1994年1月2日'\n  \n  - 1994年1月2日\n  + 1994\" month: \"1\" day: \"2年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_07__",
+      "assertion_message": "assert '1995\" month: \"2\" day: \"3年' == '1995年2月3日'\n  \n  - 1995年2月3日\n  + 1995\" month: \"2\" day: \"3年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_08__",
+      "assertion_message": "assert '2000\" month: \"3\" day: \"5年' == '2000年3月5日'\n  \n  - 2000年3月5日\n  + 2000\" month: \"3\" day: \"5年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_09__",
+      "assertion_message": "assert '2001\" month: \"4\" day: \"6年' == '2001年4月6日'\n  \n  - 2001年4月6日\n  + 2001\" month: \"4\" day: \"6年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_10__",
+      "assertion_message": "assert '1798\" month:...\" era: \"A.D.年' == '公元1798年5月30日'\n  \n  - 公元1798年5月30日\n  + 1798\" month: \"5\" day: \"30\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_11__",
+      "assertion_message": "assert '1835\" era: \"A.D.年' == '公元1835年'\n  \n  - 公元1835年\n  + 1835\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_12__",
+      "assertion_message": "assert '1834\" month: \"8\" era: \"A.D.年' == '公元1834年8月'\n  \n  - 公元1834年8月\n  + 1834\" month: \"8\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_13__",
+      "assertion_message": "assert '1994\" month:...\" era: \"A.D.年' == '公元1994年1月2日'\n  \n  - 公元1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_14__",
+      "assertion_message": "assert '1995\" month:...\" era: \"A.D.年' == '公元1995年2月3日'\n  \n  - 公元1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_15__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_16__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_17__",
+      "assertion_message": "assert '1798\" era: \"B.C.年' == '公元前1798年'\n  \n  - 公元前1798年\n  + 1798\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_18__",
+      "assertion_message": "assert '2809\" era: \"B.C.年' == '公元前2809年'\n  \n  - 公元前2809年\n  + 2809\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_19__",
+      "assertion_message": "assert '1994\" month:...\" era: \"B.C.年' == '公元前1994年1月2日'\n  \n  - 公元前1994年1月2日\n  + 1994\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_20__",
+      "assertion_message": "assert '1995\" month:...\" era: \"B.C.年' == '公元前1995年2月3日'\n  \n  - 公元前1995年2月3日\n  + 1995\" month: \"2\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_21__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_22__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_23__",
+      "assertion_message": "assert '1934\" month:...\" era: \"B.C.年' == '公元前1934年1月2日'\n  \n  - 公元前1934年1月2日\n  + 1934\" month: \"1\" day: \"2\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_24__",
+      "assertion_message": "assert '1998\" month:...\" era: \"B.C.年' == '公元前1998年3月3日'\n  \n  - 公元前1998年3月3日\n  + 1998\" month: \"3\" day: \"3\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_25__",
+      "assertion_message": "assert '2000\" month:...\" era: \"B.C.年' == '公元前2000年3月5日'\n  \n  - 公元前2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_26__",
+      "assertion_message": "assert '2001\" month:...\" era: \"B.C.年' == '公元前2001年4月6日'\n  \n  - 公元前2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"B.C.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_27__",
+      "assertion_message": "assert '1234\" month:...\" era: \"A.D.年' == '公元1234年1月2日'\n  \n  - 公元1234年1月2日\n  + 1234\" month: \"1\" day: \"2\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_28__",
+      "assertion_message": "assert '2056\" month:...\" era: \"A.D.年' == '公元2056年2月3日'\n  \n  - 公元2056年2月3日\n  + 2056\" month: \"2\" day: \"3\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_29__",
+      "assertion_message": "assert '2000\" month:...\" era: \"A.D.年' == '公元2000年3月5日'\n  \n  - 公元2000年3月5日\n  + 2000\" month: \"3\" day: \"5\" era: \"A.D.年"
+    },
+    {
+      "test_id": "tests.nemo_text_processing.zh.test_whitelist.TestDate::test_denorm_30__",
+      "assertion_message": "assert '2001\" month:...\" era: \"A.D.年' == '公元2001年4月6日'\n  \n  - 公元2001年4月6日\n  + 2001\" month: \"4\" day: \"6\" era: \"A.D.年"
+    }
+  ]
+}
