@@ -1,19 +1,22 @@
 # English TN comparison: raw cardinal versus raw cardinal plus lookahead
 
-Measured on November 22, 2026, against the personal fork main base `255bbf8b` with this prototype applied. The baseline uses the unchanged ordinary tagger/verbalizer. Raw and raw-plus-lookahead use the same paired raw grammars.
+The complete guarded runtime was validated on November 26, 2026, against the personal fork main base `255bbf8b`. The baseline uses the ordinary tagger/verbalizer. Raw and raw-plus-lookahead use paired raw grammars and retry the original pipeline when competing best readings occur.
 
-**Scope:** inputs with no numeric span longer than 12 digits. Digits across commas and decimal points count together; separate numbers are not added across a sentence or serial separators. This is an evaluation filter, not a runtime limit.
+**Reporting scope:** inputs with no numeric span longer than 12 digits. Digits across commas and decimal points count together; separate numbers are not added across a sentence or serial separators. Larger spans are outside this table and route directly to the baseline at runtime.
 
-| Corpus | Eligible inputs | Removed by digit filter | Raw differences | Raw + lookahead differences |
-| --- | ---: | ---: | ---: | ---: |
-| Written regression | 505 | 2 | 0 | 2 |
-| Selected counterexamples | 51 | 0 | 0 | 8 |
+| Corpus | Eligible inputs | Removed by digit filter | Raw differences | Raw + lookahead differences | Fallbacks in each optimized mode |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Written regression | 505 | 2 | 0 | 0 | 116 |
+| Selected counterexamples | 51 | 0 | 0 | 0 | 22 |
+| Generated boundaries and contexts | 2,371 | 0 | 0 | 0 | 181 |
 
-Raw cardinal matches the baseline in both corpora. The combined configuration differs on the ten inputs below. The baseline output is therefore also the raw-cardinal output for these rows.
+Both complete runtimes match the baseline in these corpora. Every historical difference below now triggers `ambiguous_rewrite` fallback and returns the baseline column exactly. These rows remain regression fixtures and document why the guard is necessary.
+
+The remaining table records the **unguarded prototype measured on November 22**, before baseline routing was implemented. Its changed-output column is historical, rather than the output of the current runtime.
 
 JSON-style escapes make tabs, newlines, backslashes, and invisible characters explicit. Outputs are complete.
 
-| ID | Corpus | Input | Baseline and raw cardinal | Raw cardinal + lookahead | Common path cost |
+| ID | Corpus | Input | Baseline and current guarded modes | Unguarded raw + lookahead (historical) | Common path cost |
 | --- | --- | --- | --- | --- | ---: |
 | D01 | regression | 31/31/100 | thirty one/thirty one/one hundred | thirty one slash thirty one slash one hundred | 1.12010002 |
 | D02 | regression | 123/261788/2021 | one hundred twenty three/two six one seven eight eight/two thousand twenty one | one hundred twenty three slash two six one seven eight eight slash two thousand twenty one | 1.12010002 |
@@ -28,6 +31,6 @@ JSON-style escapes make tabs, newlines, backslashes, and invisible characters ex
 
 Each combined tag was constrained through the original composed lattice, after rendering top-level raw-cardinal fields with the original number graph where needed. All ten candidate paths are accepted at the same minimum cost as the baseline. Equal costs still permit different strings and do not remove the output-parity failure.
 
-The first two rows also fail existing serial assertions. The eight selected replay inputs have no independent output oracle. Baseline and raw mode separately share three pre-existing Roman-numeral expectation failures in the written corpus; these are not introduced by the prototype and are not candidate-vs-baseline differences.
+The first two rows previously failed existing serial assertions; both optimized modes now pass those assertions. The eight selected replay inputs have no independent output oracle. All current modes share three pre-existing Roman-numeral expectation failures in the written corpus; these are not candidate-vs-baseline differences. Passing the English tests does not imply perfect linguistic accuracy.
 
-Use `benchmark_deferred_cardinal.py` with all non-audio `test_cases_*.txt` files and `--max-digits 12` for the first corpus. Use `--cases-jsonl tests/nemo_text_processing/en/data_text_normalization/deferred_cardinal_counterexamples.jsonl` for the second. The proposal contains complete invocation examples and the validation gates.
+Use `benchmark_deferred_cardinal.py` with all non-audio `test_cases_*.txt` files and `--max-digits 12` for the first corpus. Use `--cases-jsonl tests/nemo_text_processing/en/data_text_normalization/deferred_cardinal_counterexamples.jsonl` for the second. `generate_deferred_cardinal_cases.py --output /tmp/boundaries.jsonl` reproduces the third corpus using seed `20261126`, including powers-of-ten boundaries, signs, zeros, commas, and mixed-class contexts. Its JSONL SHA-256 is `01dee6fb2b977be65c8e137b7f1fe439e4043b2fad399ba864c439efd41a1e1a`. These generated inputs have no independent expected-output oracle. The proposal contains complete invocation examples, current timing results, and the validation gates.

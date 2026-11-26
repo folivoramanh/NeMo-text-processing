@@ -1,218 +1,260 @@
-# Proposal: Defer English cardinal rendering to the verbalizer
+# English TN: guarded deferred cardinal rendering
 
-**Status:** experimental, opt-in. **Scope:** deterministic English TN, initially
-evaluated on numeric literals containing at most 12 digits.
+**Status:** implemented, experimental, and opt-in; the ordinary runtime remains
+the default. Both deferred configurations retry a complete native baseline pair
+when the optimized result is ambiguous or outside scope.
 
-Move number-to-words expansion for top-level cardinal tokens from the tagger to
-the verbalizer. Compare two implementations against ordinary NeMo: deferred
-cardinal rendering alone, and the same grammar with OpenFst lookahead tagging.
-Raw cardinal is the initial candidate: it matches the measured baseline outputs
-and existing English assertions on this fork. The combined mode is faster but
-has two known serial regressions and remains a comparison configuration. Keep
-the default pipeline unchanged until the chosen configuration meets the
-output-parity and serving-latency gates below.
+The change moves top-level cardinal expansion from tagging to verbalization,
+using ordinary composition or OpenFst label lookahead. It does not establish
+equivalence for every input or readiness for production.
 
-## Problem and proposed behavior
-
-The current tagger generates spoken forms while it is still searching possible
-token boundaries and semiotic classes. For a top-level cardinal, the verbalizer
-then mainly removes the field labels. This carries spoken-number output paths
-through the expensive tagging search before the tokenization has been selected.
+## Grammar change and supported scope
 
 ```text
-Current:
-125 -> cardinal { integer: "one hundred and twenty five" }
-    -> one hundred and twenty five
-
-Deferred:
-125 -> cardinal { integer: "125" }
-    -> one hundred and twenty five
+Ordinary: 125 -> cardinal { integer: "one hundred and twenty five" }
+Deferred: 125 -> cardinal { integer: "125" }
 ```
 
-The proposed tagger recognizes and scores the original numeric spelling, and
-the verbalizer renders the selected cardinal using the existing number graph.
-Leading zeros, comma grouping, and the separate negative field retain their
-existing grammar rules. Embedded numbers in money, measure, decimal, date,
-ordinal, and other classes continue using their current graphs in this first
-prototype.
+Only deterministic English TN without an LM is supported.
+Embedded numeric graphs in money, measures, decimals, dates, ordinals, serials,
+and other classes keep their existing spoken outputs. Signs, grouping, and
+leading zeros retain their existing grammar rules.
 
-## Two configurations
-
-| Configuration | Tagging | Verbalization |
-| --- | --- | --- |
-| Reference | Ordinary tagger, producing spoken cardinal fields | Existing verbalizer |
-| Raw cardinal | Ordinary composition with the deferred-cardinal tagger | Paired deferred-cardinal verbalizer |
-| Raw cardinal + lookahead | Convert that same deferred tagger to `ilabel_lookahead`, relabel the input, and compose | The same paired deferred-cardinal verbalizer |
-
-Both candidate configurations use the existing parser, field permutations,
-punctuation handling, and post-processing. The prototype does not change serial
-weights, token-type defaults, decoder pruning, or epsilon-removal order. ITN,
-audio/non-deterministic normalization, and serving deployment are separate work.
-
-## Preserve classification costs
-
-Build the raw-number recognizer by tropical input projection of the original
-number-to-words transducer, followed by optimization:
+The top-level recognizer is the tropical input projection of the original
+weighted number graph, followed by optimization:
 
 ```python
-raw_number_graph = pynini.project(original_number_graph, "input").optimize()
+raw_number_graph = pynini.project(original_number_graph, 'input').optimize()
 ```
 
-For a numeric spelling `x`, this retains the original minimum classification
-cost over its spoken alternatives:
+For spelling `x`, projection keeps `x -> x` at cost `min_y c(x, y)`. A plain
+unweighted digits expression would lose classification preferences. The paired
+verbalizer uses the original weighted number graph after tagging selects the
+cardinal. Preserving a span's minimum cost alone cannot preserve tied winners.
 
-```text
-original: x -> y, with cost c(x, y)
-deferred: x -> x, with minimum cost min_y c(x, y)
+The optimized numeric window is at most **12 digits per numeric span**.
+The runtime counts ASCII digits across commas and decimal points, including
+leading zeros, using `[0-9][0-9,.]*`. Separate numbers across words or serial
+separators are counted separately. Any longer span routes the whole input to
+the native baseline; digits are neither truncated nor rejected.
+
+## Guarded selection and baseline retry
+
+Both native deferred and lookahead deferred runtimes guard the tagging lattice
+and every selected verbalization lattice before relying on their best paths.
+The guard excludes the selected output language and computes the cheapest
+remaining output. It does not enumerate all paths, introduce a beam, cap states,
+or change the selected path when the guard passes.
+
+For tags, equivalence includes only ASCII spaces ignored by `TokenParser`.
+The exclusion acceptor preserves the parsed structure, literal keys and
+delimiters, field order, and every character inside quoted values. It permits
+`SPACE*` at parser whitespace sites and requires `SPACE+` after closing quoted
+values, matching the parser's terminator rule. Embedded quotes stay literal.
+If parsing or reconstruction fails, or the acceptor misses the complete chosen
+tag, the guard conservatively uses the exact literal output instead.
+
+The verbalizer guard compares exact output strings. Duplicate paths with the
+same output are harmless. A distinct equal-cost or near-optimal output raises
+`AmbiguousRewrite`. The comparison tolerance is
+`max(1e-6, 8 * 2**-23 * max(1, abs(best_cost), abs(alternate_cost)))` to account
+conservatively for float32 tropical weights. A strictly cheaper selected output
+may therefore still request fallback.
+
+On ambiguity, `Normalizer.normalize()` retries the **whole original input** with
+the paired native baseline tagger and baseline verbalizer, retaining the call's
+punctuation settings and current post-processor. It never sends baseline spoken
+cardinal tags through the deferred verbalizer. `last_fallback_reason` is reset
+for each call: `None`, `ambiguous_rewrite`, or `numeric_scope`.
+
+Default normalization, grammar weights, global token/byte defaults, and the
+existing parser/permutation/post-processing behavior remain unchanged. ITN,
+audio/non-deterministic decoding, and Riva integration are outside this change.
+
+## Public API and CLI
+
+```python
+from nemo_text_processing.text_normalization.normalize import Normalizer
+
+raw = Normalizer(input_case='cased', defer_cardinal=True, cache_dir='build/tn-cache')
+raw.export_runtime('build/deferred-lookahead')  # Default: lookahead=True.
+raw.export_runtime('build/deferred-native', lookahead=False)
+
+loaded = Normalizer(input_case='cased', runtime_dir='build/deferred-lookahead')
+print(loaded.normalize('31/31/100'))
 ```
 
-An unweighted digits expression would lose those preferences and could alter
-competition with other classes. The verbalizer uses the original weighted
-number graph to choose a reading after classification. Classification and
-verbalization remain separate stages; preserving a span's minimum cost does
-not guarantee an identical winner when full-sentence paths are tied.
-
-Lookahead is applied only after building the deferred tagger. Its complete
-relabel table must travel with the immutable matcher, including collision-
-avoidance entries. Loading the matcher as a mutable Pynini vector FST would
-discard its lookahead implementation, so the loader retains its OpenFst type.
-
-## Implementation and artifact pairing
-
-- `CardinalFst(defer_verbalization=True)` changes only its top-level `fst`;
-  subgraphs used by other semiotic classes retain their spoken outputs.
-- `ClassifyFst(defer_cardinal=True)` builds the paired English tagger.
-- `VerbalizeFinalFst(defer_cardinal=True)` builds its matching verbalizer.
-- Both grammar caches use distinct `_raw_cardinal` filenames. Ordinary caches
-  keep their current names.
-- `Normalizer(lookahead_dir=...)` provides the optional lookahead tagging path.
-  The comparison helper exports the raw tagger and installs its matching raw
-  verbalizer together.
-
-A raw tagger must always be deployed with its raw verbalizer. Mixing it with
-the ordinary verbalizer would leave digits unspoken. Bundle and version those
-artifacts together. All new grammar switches default to `False`; the public
-`Normalizer` does not silently enable deferred rendering.
-
-The implementation is in the English cardinal/classifier/verbalizer modules
-and [lookahead.py](../../nemo_text_processing/text_normalization/lookahead.py).
-The [comparison runner](benchmark_deferred_cardinal.py) constructs the complete
-pairs and measures both candidates against the same baseline.
-
-## Evidence and limits
-
-Measurements were repeated on the personal fork's `main` base `255bbf8b`, with
-this prototype applied, on November 22, 2026: macOS arm64, Python 3.12.2,
-Pynini 2.1.6.post1, and OpenFst 1.8.3. Query order rotates between the three
-configurations. Means include `normalize()` and exclude grammar construction,
-loading, and lookahead conversion.
-
-| Corpus | Ordinary Pynini | Raw cardinal | Raw cardinal + lookahead |
-| --- | ---: | ---: | ---: |
-| 505 eligible English TN regression rows, 3 repetitions | 7.04 ms | 4.57 ms | 2.66 ms |
-| One 29-word mixed English sentence, 100 repetitions | 75.92 ms | 44.75 ms | 19.96 ms |
-
-Raw cardinal reduced these measured means by about **35% and 41%** relative to
-the ordinary pipeline. The combined mode was approximately 42% and 55% faster
-than raw cardinal alone, but its parity failures prevent recommending it for
-activation. These are local single-process results; target Linux/service
-latency, throughput, and memory remain acceptance work.
-
-| Validation on the fork base | Baseline | Raw cardinal | Raw cardinal + lookahead |
-| --- | --- | --- | --- |
-| Existing English pytest suite | 1,555 passed | 1,555 passed | 1,553 passed, 2 failed |
-| Additional cardinal/lookahead/evaluation-filter tests | 91 passed | Covered in the additional tests | Covered in the additional tests |
-| Eligible written regression rows | Reference | 0/505 differences | 2/505 differences |
-| Selected counterexample replay | Reference | 0/51 differences | 8/51 differences |
-| Repeated 29-word sentence | Reference | 0 differences | 0 differences |
-
-The two combined-mode regression failures are `31/31/100` and
-`123/261788/2021`: the baseline preserves `/`, while the combined mode emits
-`slash`. Full outputs for these and the eight replay differences are in the
-[comparison tables](deferred_cardinal_comparison.md). Both tables exclude inputs
-with numeric spans longer than 12 digits.
-
-All ten combined candidate tags are accepted by the original lattice at the
-same minimum cost as the baseline tags. This identifies alternative tied paths;
-it does not make the output differences acceptable for a strict parity gate.
-
-The 505-row set is the fork's complete 507-row non-audio written regression
-corpus after filtering two longer-number inputs. It uses the money and
-punctuation-matching settings from the repository tests. Baseline and raw mode
-both match 502/505 supplied expectations; combined mode matches 500/505. The
-three shared failures are existing Roman-numeral expectations whose deterministic
-pytest assertions are commented out. Passing pytest is therefore not a claim
-of 100% linguistic accuracy. The English test total also includes unaffected
-ITN tests.
-
-The 51-input replay is a selected counterexample set, mostly short serial and
-mixed-input cases; it has no independent expected-output oracle. It does not
-establish equivalence for every 12-digit input. Earlier broader testing found
-long comma-grouped inputs outside this reporting window that changed span
-boundaries at the same cost. Keep that known limitation visible in any rollout
-decision.
-
-The 12-digit bound is an **evaluation filter**, not a runtime restriction.
-The implementation does not reject, truncate, or automatically fall back for
-larger numbers. Any production policy limiting this optimization to that window
-must first define and validate the corresponding baseline fallback.
-
-## Reproduce the comparison
-
-Run in a Pynini/OpenFst environment with the compatible lookahead plugin, from
-the repository root:
+`runtime_dir` loads the complete pair without compiling grammars. Its language
+and input case must match the bundle. A bundle without a post-processor requires
+`post_process=False`. Whitelists must be baked in before export; do not combine
+`runtime_dir` with a whitelist or `lookahead_dir`; deferred mode requires complete
+paired bundles.
 
 ```bash
-python -m tools.text_processing_deployment.benchmark_deferred_cardinal \
-  --work-dir /tmp/deferred-cardinal --report /tmp/deferred-cardinal.json \
-  --max-digits 12 --repeats 3 \
-  --test-files tests/nemo_text_processing/en/data_text_normalization/test_cases_cardinal.txt \
-               tests/nemo_text_processing/en/data_text_normalization/test_cases_money.txt
+python -m nemo_text_processing.text_normalization.normalize \
+  --language en --input_case cased --defer_cardinal \
+  --cache_dir build/tn-cache --export_runtime build/deferred-cli
+python -m nemo_text_processing.text_normalization.normalize \
+  --language en --input_case cased --runtime_dir build/deferred-cli \
+  --text '31/31/100'
 ```
 
-Add the other non-audio regression files for the complete written corpus.
-For the selected replay, use
-`--cases-jsonl tests/nemo_text_processing/en/data_text_normalization/deferred_cardinal_counterexamples.jsonl`.
-Use `--without-lookahead` when evaluating raw mode in an environment without the
-optional OpenFst lookahead plugin.
-The runner applies the repository's money/post-processing and punctuation-
-matching settings, reports filtered inputs explicitly, records every changed
-output and shared error, and separates expected-output checks from parity.
-Nonzero exit status means a parity, expected-output, or execution-error gate
-failed. Setup and conversion are excluded from timing, and query order rotates
-between the three configurations.
+CLI export creates a lookahead bundle. Native `export_runtime(..., lookahead=False)`
+does not require the plugin. This flag cannot convert a loaded lookahead matcher
+back to a native tagger.
+Lookahead conversion needs `fstconvert` and a compatible `ilabel_lookahead`
+plugin; ordinary Pynini pip wheels do not provide that plugin.
 
-Run the existing English pytest assertions with each candidate while retaining
-the constructor and call settings in the tests:
+## Pairing, integrity, caches, and workers
+
+```text
+manifest.json
+raw/verbalizer.fst
+raw/lookahead/{tagger.fst,relabel.pairs,metadata.json}  # Lookahead backend.
+raw/tagger.fst                                      # Native backend instead.
+baseline/{tagger.fst,verbalizer.fst}
+post_processor.fst                                 # When exported.
+```
+
+Export validates the complete bundle in a temporary sibling directory and
+publishes it with one directory rename. Existing destinations are not reused.
+The manifest fixes schema version 1, grammar ABI `english_deferred_cardinal_v1`,
+English TN, deterministic mode, input case, backend, the 12-digit window,
+post-processing presence, whitelist identity, and SHA-256 hashes for the exact
+artifact set. Loading checks these fields, hashes, graph types, and graph
+validity. Hashes detect changed contents; they are not artifact signatures or a
+promise of binary compatibility across arbitrary OpenFst installations.
+
+Custom whitelist contents are hashed, recorded in the bundle, and separated
+in raw and native fallback caches. Deferred public constructors additionally
+namespace all their caches by the grammar ABI, Pynini version, and English
+`.py`, `.tsv`, and `.far` source contents. Ordinary cache behavior is preserved.
+The bundled baseline is independent of subsequently installed grammar sources.
+
+Lookahead retains its immutable OpenFst matcher and complete relabel table,
+including collision-avoidance entries. Process workers reload graphs from the
+same bundle and revalidate its manifest digest and contents; serialization does
+not silently turn the matcher into a mutable vector FST. Keep the bundle path
+available and unchanged for `normalize_list(..., n_jobs=...)` workers.
+
+## Validation evidence and interpretation
+
+Measured November 26, 2026, on macOS arm64, Python 3.12.2, Pynini 2.1.6.post1,
+OpenFst 1.8.3, against personal fork base `255bbf8b` plus this change.
+
+| Check | Baseline | Raw digits | Raw digits + lookahead |
+| --- | ---: | ---: | ---: |
+| Existing English pytest suite (audio excluded; includes ITN) | 1,555 passed | 1,555 passed | 1,555 passed |
+| Written regression, ≤12 digits | Reference | 0/505 differences | 0/505 differences |
+| Selected counterexample replay | Reference | 0/51 differences | 0/51 differences |
+| Generated boundaries and contexts | Reference | 0/2,371 differences | 0/2,371 differences |
+
+The default English suite plus component/API tests passed 1,983 tests in the
+first full run. After final artifact/cache hardening, all 438 component/API
+tests passed again. The two historical serial failures and eight historical
+replay differences now return the baseline output through fallback; see the
+[complete historical difference table](deferred_cardinal_comparison.md).
+
+Latency cells show **mean / p95 milliseconds**, including guards and retries.
+The corpora use three repetitions; each sentence uses 100 repetitions.
+Fallback counts describe unique inputs from the first repetition, in each
+optimized mode, rather than the number of timed calls.
+
+| Corpus | Baseline | Raw digits | Raw digits + lookahead | Fallback inputs |
+| --- | ---: | ---: | ---: | ---: |
+| Written regression (505; two longer rows filtered) | 5.08 / 13.50 | 4.87 / 12.53 | 3.48 / 8.97 | 116/505 |
+| Selected replay (51) | 8.20 / 14.67 | 10.35 / 24.61 | 7.99 / 20.68 | 22/51 |
+| Boundaries and contexts (2,371) | 4.26 / 10.04 | 4.71 / 10.93 | 3.90 / 9.22 | 181/2,371 |
+| Mixed `sentence` (29 words) | 41.70 / 51.99 | 69.98 / 84.04 | 56.53 / 70.72 | 1/1 |
+| Simple `cardinal-sentence` (14 words) | 14.54 / 15.32 | 16.19 / 17.10 | 11.51 / 11.85 | 0/1 |
+
+Combined-mode means improve about 31% on written regression, 8% on boundaries,
+and 21% on the simple cardinal sentence. The mixed sentence is about 36% slower
+because of fallback. Replay mean is similar, while its p95 worsens. Raw digits
+alone also regresses on several workloads. These measurements support testing
+the combined runtime as an opt-in choice, rather than a universal speedup claim.
+
+Reports distinguish baseline parity, expected-output failures, execution
+errors, and fallback counts. The written regression corpus includes the shared
+Roman-numeral expectation failures `Sam II`, `Chapter IV`, and `PART XL`.
+Their deterministic assertions are commented out in the stock Roman pytest;
+passing that suite does not mean those written expectations pass.
+
+The selected replay has no independent output oracle. The generated boundary
+corpus likewise compares baseline outputs: 2,371 deterministic cases from 401
+core integers, seeded with 20261126, covering every width from 1 to 12 digits,
+signs, zero/grouping boundaries, and mixed semiotic contexts.
+
+The `sentence` benchmark is the 29-word mixed input containing `$2,450.75`.
+It always falls back: `dollars` and `us dollars` remain genuine equal-cost
+alternatives after structural tag spaces are ignored. Guards and retry add work
+on every call. Judge guarded end-to-end performance with its fallback frequency.
+The separate `cardinal-sentence` benchmark is a simple cardinal control with no
+observed fallback; tables distinguish these two sentence inputs.
+
+Exact sentence inputs, passed with the runner's `--text` and `--repeats 100`:
+
+```text
+sentence: On November 20, 2026, we shipped 125 packages weighing 12.5 kg each to 3 offices, and the total cost was $2,450.75, including a 7.5% delivery charge for overnight service.
+cardinal-sentence: We counted 125 packages and 42 boxes before sending 103 items to 3 offices.
+```
+
+## Reproduce regression, replay, and boundary comparisons
+
+Run these Bash commands from the repository root in a compatible Pynini/OpenFst
+environment. They exclude audio data and report only the 12-digit window;
+runtime routing remains active independently of this reporting filter.
+
+```bash
+WORK_DIR=$(mktemp -d)
+REGRESSION_FILES=()
+for path in tests/nemo_text_processing/en/data_text_normalization/test_cases_*.txt; do
+  [[ "$path" == *normalize_with_audio* ]] || REGRESSION_FILES+=("$path")
+done
+python -m tools.text_processing_deployment.benchmark_deferred_cardinal \
+  --work-dir "$WORK_DIR/regression" --report "$WORK_DIR/regression.json" \
+  --max-digits 12 --repeats 3 --test-files "${REGRESSION_FILES[@]}"
+python -m tools.text_processing_deployment.benchmark_deferred_cardinal \
+  --work-dir "$WORK_DIR/replay" --report "$WORK_DIR/replay.json" \
+  --max-digits 12 --repeats 3 --cases-jsonl \
+  tests/nemo_text_processing/en/data_text_normalization/deferred_cardinal_counterexamples.jsonl
+python -m tools.text_processing_deployment.generate_deferred_cardinal_cases \
+  --output "$WORK_DIR/boundaries.jsonl"
+python -m tools.text_processing_deployment.benchmark_deferred_cardinal \
+  --work-dir "$WORK_DIR/boundaries" --report "$WORK_DIR/boundaries-report.json" \
+  --max-digits 12 --repeats 3 --cases-jsonl "$WORK_DIR/boundaries.jsonl"
+```
+
+The runner uses the public guarded API, rotates query order, preserves money and
+punctuation test settings, and excludes construction/loading/conversion from
+timings. `--without-lookahead` omits the optional plugin. Nonzero status means a
+parity, expectation, or execution-error gate failed; inspect each separately.
+
+Run stock English tests sequentially, retaining their constructor/call settings:
 
 ```bash
 python -m pytest tests/nemo_text_processing/en \
   --ignore=tests/nemo_text_processing/en/test_normalization_with_audio.py \
-  --cpu --use_local_test_data --tn_cache_dir=/tmp/deferred-test-native \
-  -p tools.text_processing_deployment.deferred_cardinal_pytest \
-  --deferred-runtime raw --deferred-work-dir /tmp/deferred-test-raw
+  --cpu --use_local_test_data --tn_cache_dir "$WORK_DIR/stock-cache"
+for variant in raw raw-lookahead; do
+  python -m pytest tests/nemo_text_processing/en \
+    --ignore=tests/nemo_text_processing/en/test_normalization_with_audio.py \
+    --cpu --use_local_test_data --tn_cache_dir "$WORK_DIR/stock-cache" \
+    -p tools.text_processing_deployment.deferred_cardinal_pytest \
+    --deferred-runtime "$variant" --deferred-work-dir "$WORK_DIR/$variant-tests"
+done
+
+# Component, pairing, public API, ambiguity, and worker tests.
+python -m pytest tests/nemo_text_processing/test_*.py --cpu --use_local_test_data
 ```
 
-Repeat with `--deferred-runtime raw-lookahead`. These commands intentionally
-exclude the separate audio decoder; deferred mode rejects non-deterministic TN.
+## Remaining acceptance gates
 
-## Acceptance and rollout
-
-1. Establish output oracles and baseline comparisons for powers-of-ten
-   boundaries, zero/leading zeros, signs, grouping, and mixed-class contexts
-   throughout the 1–12-digit window. Add a representative held-out English corpus.
-2. Require zero regressions against expected outputs and review every baseline
-   difference for each candidate separately. Resolve weighted ties with an
-   agreed policy before enabling a configuration requiring exact parity.
-3. Measure the exact candidate build on Linux at sentence length, recording
-   latency distributions, throughput, memory, and dispatch overhead under the
-   intended service concurrency.
-4. Define the policy for larger or ambiguous inputs, including a validated
-   baseline fallback if rollout is restricted to a numeric window.
-5. Enable one explicit configuration only after those gates pass. Retain the
-   ordinary pipeline as the rollback path and package the raw tagger/verbalizer
-   as one versioned unit.
-
-The requested decision is to retain and evaluate both opt-in prototypes.
-Production activation and a general accuracy-preservation claim depend on the
-remaining gates above.
+Require zero new baseline differences and review shared linguistic failures
+separately. Add representative held-out English text and adversarial mixed
+inputs; finite regression and boundary corpora are not an all-input proof.
+Measure the exact guarded build on Linux and in the intended Riva/service path:
+latency distributions, throughput, cold load, bundle/RSS memory, fallback rate,
+and process/concurrency overhead. Local results do not establish those targets.
+Activate an explicit configuration only after those gates pass, preserving the
+ordinary runtime and paired native baseline as the operational rollback path.

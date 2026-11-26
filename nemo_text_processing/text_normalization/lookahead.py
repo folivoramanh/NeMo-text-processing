@@ -101,22 +101,35 @@ class LookaheadTagger:
 
     def _load(self):
         directory = Path(self.directory)
-        metadata = json.loads((directory / 'metadata.json').read_text(encoding='utf-8'))
-        if metadata.get('version') != 1:
+        try:
+            metadata = json.loads((directory / 'metadata.json').read_text(encoding='utf-8'))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise ValueError(f'Cannot read lookahead metadata in {directory}: {error}') from error
+        if not isinstance(metadata, dict):
+            raise ValueError('Lookahead metadata must be a JSON object')
+        if type(metadata.get('version')) is not int or metadata['version'] != 1:
             raise ValueError('Unsupported lookahead export version')
         for key, value in self.expected.items():
             if metadata.get(key) != value:
                 raise ValueError(f'Lookahead {key} mismatch: expected {value!r}, found {metadata.get(key)!r}')
-        for name in ('tagger.fst', 'relabel.pairs'):
-            if _sha256(directory / name) != metadata['sha256'].get(name):
-                raise ValueError(f'Lookahead artifact checksum mismatch: {name}')
-        self.relabel_pairs = [
-            tuple(map(int, line.split()))
-            for line in (directory / 'relabel.pairs').read_text(encoding='utf-8').splitlines()
-            if line.strip()
-        ]
+        checksums = metadata.get('sha256')
+        if not isinstance(checksums, dict):
+            raise ValueError('Lookahead metadata must include artifact checksums')
+        try:
+            for name in ('tagger.fst', 'relabel.pairs'):
+                if _sha256(directory / name) != checksums.get(name):
+                    raise ValueError(f'Lookahead artifact checksum mismatch: {name}')
+            relabel_text = (directory / 'relabel.pairs').read_text(encoding='utf-8')
+        except (OSError, UnicodeError) as error:
+            raise ValueError(f'Cannot read lookahead artifacts in {directory}: {error}') from error
+        try:
+            self.relabel_pairs = [tuple(map(int, line.split())) for line in relabel_text.splitlines() if line.strip()]
+        except ValueError as error:
+            raise ValueError('Invalid lookahead relabel table: expected integer label pairs') from error
         if any(len(pair) != 2 or min(pair) < 0 or (0 in pair and pair != (0, 0)) for pair in self.relabel_pairs):
             raise ValueError('Invalid lookahead relabel table')
+        if len({source for source, _ in self.relabel_pairs}) != len(self.relabel_pairs):
+            raise ValueError('Duplicate source labels in lookahead relabel table')
         try:
             # pynini.Fst.read() silently converts this to a vector FST, losing the matcher.
             self.fst = pywrapfst.Fst.read(str(directory / 'tagger.fst'))
@@ -126,6 +139,7 @@ class LookaheadTagger:
             ) from error
         if self.fst.fst_type() != 'ilabel_lookahead':
             raise ValueError('Expected an ilabel_lookahead tagger')
+        self.metadata = metadata
 
     def compose(self, escaped_text):
         """Tag an escaped Pynini string, preserving its original input labels."""

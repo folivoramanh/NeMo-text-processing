@@ -20,15 +20,13 @@ import re
 import statistics
 import tempfile
 from argparse import ArgumentParser
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
 
 import pynini
 
-from nemo_text_processing.text_normalization.en.taggers.tokenize_and_classify import ClassifyFst
-from nemo_text_processing.text_normalization.en.verbalizers.verbalize_final import VerbalizeFinalFst
-from nemo_text_processing.text_normalization.lookahead import LookaheadTagger, export_lookahead_tagger
 from nemo_text_processing.text_normalization.normalize import Normalizer
 from nemo_text_processing.utils.logging import logger
 
@@ -48,14 +46,13 @@ def longest_number(text):
     return max((sum(char.isdigit() for char in span) for span in re.findall(r'[0-9][0-9,.]*', text)), default=0)
 
 
-def deferred_components(input_case, cache_dir, lookahead_dir=None):
-    """Build the paired raw grammars and optionally export their lookahead matcher."""
-    tagger = ClassifyFst(input_case=input_case, cache_dir=str(cache_dir), defer_cardinal=True)
-    verbalizer = VerbalizeFinalFst(cache_dir=str(cache_dir), defer_cardinal=True)
+def deferred_normalizer(input_case, cache_dir, lookahead_dir=None):
+    """Build a public guarded runtime, optionally exporting and loading its bundle."""
+    normalizer = Normalizer(input_case=input_case, cache_dir=str(cache_dir), defer_cardinal=True)
     if lookahead_dir is not None:
-        export_lookahead_tagger(tagger.fst, lookahead_dir, language='en', input_case=input_case, mode='tn')
-        tagger = LookaheadTagger(lookahead_dir, language='en', input_case=input_case, mode='tn')
-    return tagger, verbalizer
+        normalizer.export_runtime(lookahead_dir)
+        normalizer = Normalizer(input_case=input_case, runtime_dir=lookahead_dir)
+    return normalizer
 
 
 def outcome(normalizer, case):
@@ -78,7 +75,9 @@ def main():
     parser.add_argument('--test-files', type=Path, nargs='*', default=[])
     parser.add_argument('--cases-jsonl', type=Path, help='One object per line: text and optional normalize settings')
     parser.add_argument('--text', action='append', default=[])
-    parser.add_argument('--max-digits', type=int, help='Evaluation filter only; does not limit the grammar/runtime')
+    parser.add_argument(
+        '--max-digits', type=int, help='Evaluation filter; runtime baseline routing remains independent'
+    )
     parser.add_argument('--repeats', type=int, default=3)
     parser.add_argument('--warmup', type=int, default=5)
     parser.add_argument('--without-lookahead', action='store_true')
@@ -115,18 +114,15 @@ def main():
     artifacts = Path(tempfile.mkdtemp(prefix='deferred-', dir=args.work_dir))
     cache = args.cache_dir or args.work_dir / 'grammars'
     native = Normalizer(input_case=args.input_case, lang='en', cache_dir=str(cache))
-    raw = Normalizer(input_case=args.input_case, lang='en', cache_dir=str(cache))
-    raw.tagger, raw.verbalizer = deferred_components(args.input_case, cache)
+    raw = deferred_normalizer(args.input_case, cache)
     variants = {'baseline': native, 'raw': raw}
     if not args.without_lookahead:
-        raw_lookahead = Normalizer(input_case=args.input_case, lang='en', cache_dir=str(cache))
-        raw_lookahead.tagger, raw_lookahead.verbalizer = deferred_components(
-            args.input_case, cache, artifacts / 'lookahead'
-        )
+        raw_lookahead = deferred_normalizer(args.input_case, cache, artifacts / 'lookahead')
         variants['raw-lookahead'] = raw_lookahead
     processors = {name: normalizer.post_processor for name, normalizer in variants.items()}
     timings = {name: [] for name in variants}
     outputs = {name: [] for name in variants}
+    fallbacks = {name: Counter() for name in variants}
     was_disabled = logger.disabled
     logger.disabled = True
     try:
@@ -148,6 +144,9 @@ def main():
                         timings[name].append(elapsed_ms)
                     if iteration == 0:
                         outputs[name].append(result)
+                        reason = getattr(normalizer, 'last_fallback_reason', None)
+                        if reason:
+                            fallbacks[name][reason] += 1
     finally:
         logger.disabled = was_disabled
     report = {
@@ -188,6 +187,7 @@ def main():
             'shared_errors': shared_errors,
             'scored': sum(bool(case.expected) for case in cases),
             'expected_failures': expected_failures,
+            'fallbacks': dict(fallbacks[name]),
         }
     report['parity_passed'] = all(not entry['differences'] for entry in report['variants'].values())
     report['expected_outputs_passed'] = all(not entry['expected_failures'] for entry in report['variants'].values())

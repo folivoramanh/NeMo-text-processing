@@ -81,7 +81,14 @@ class ClassifyFst(GraphFst):
         if cache_dir is not None and cache_dir != "None":
             os.makedirs(cache_dir, exist_ok=True)
             whitelist_file = os.path.basename(whitelist) if whitelist else ""
-            cache_variant = '_raw_cardinal' if defer_cardinal else ''
+            cache_variant = ''
+            if defer_cardinal:
+                from nemo_text_processing.text_normalization.deferred_runtime import deferred_cache_suffix
+
+                # Raw graphs have a separate ABI; custom whitelist contents,
+                # including edits under the same basename, identify the cache.
+                whitelist_file = ''
+                cache_variant = deferred_cache_suffix(whitelist)
             far_file = os.path.join(
                 cache_dir,
                 f"en_tn_{deterministic}_deterministic_{input_case}_{whitelist_file}{cache_variant}_tokenize.far",

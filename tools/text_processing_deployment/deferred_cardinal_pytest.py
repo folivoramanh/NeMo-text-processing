@@ -14,11 +14,13 @@
 
 """Opt-in English regression adapter for raw and raw-plus-lookahead grammars."""
 
+import copy
 import tempfile
 from pathlib import Path
 
 from nemo_text_processing.text_normalization.normalize import Normalizer
-from tools.text_processing_deployment.benchmark_deferred_cardinal import deferred_components
+from nemo_text_processing.text_normalization.token_parser import TokenParser
+from tools.text_processing_deployment.benchmark_deferred_cardinal import deferred_normalizer
 
 
 def pytest_addoption(parser):
@@ -47,10 +49,19 @@ def pytest_collection_modifyitems(config, items):
                 raise ValueError('This adapter supports the stock deterministic English suite only.')
             seen.add(id(normalizer))
             key = normalizer.input_case
+            # Reuse built pairs while retaining each test instance's processing
+            # settings and independent parser. Install the complete runtime,
+            # including its native fallback, rather than swapping two FSTs.
             if key not in pairs:
                 directory = artifacts / key if variant == 'raw-lookahead' else None
-                pairs[key] = deferred_components(key, work / 'grammars', directory)
-            normalizer.tagger, normalizer.verbalizer = pairs[key]
+                pairs[key] = deferred_normalizer(key, work / 'grammars', directory)
+            source = pairs[key]
+            normalizer.tagger, normalizer.verbalizer = source.tagger, source.verbalizer
+            normalizer.defer_cardinal = True
+            normalizer._runtime_bundle = source._runtime_bundle
+            normalizer._max_numeric_digits = source._max_numeric_digits
+            normalizer._baseline_normalizer = copy.copy(source._baseline_normalizer)
+            normalizer._baseline_normalizer.parser = TokenParser()
     config._deferred_normalizer_count = len(seen)
 
 

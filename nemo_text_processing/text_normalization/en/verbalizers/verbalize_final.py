@@ -55,7 +55,11 @@ class VerbalizeFinalFst(GraphFst):
         far_file = None
         if cache_dir is not None and cache_dir != "None":
             os.makedirs(cache_dir, exist_ok=True)
-            cache_variant = '_raw_cardinal' if defer_cardinal else ''
+            cache_variant = ''
+            if defer_cardinal:
+                from nemo_text_processing.text_normalization.deferred_runtime import deferred_cache_suffix
+
+                cache_variant = deferred_cache_suffix()
             far_file = os.path.join(cache_dir, f"en_tn_{deterministic}_deterministic{cache_variant}_verbalizer.far")
         if not overwrite_cache and far_file and os.path.exists(far_file):
             self.fst = pynini.Far(far_file, mode="r")["verbalize"]
