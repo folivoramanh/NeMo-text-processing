@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+import hashlib
 import itertools
 import json
 import os
@@ -22,6 +24,7 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from glob import glob
 from math import factorial
+from pathlib import Path
 from time import perf_counter
 from typing import Dict, List, Optional, Union
 
@@ -39,6 +42,8 @@ from nemo_text_processing.text_normalization.data_loader_utils import (
     pre_process,
     write_file,
 )
+from nemo_text_processing.text_normalization.lookahead import LookaheadTagger
+from nemo_text_processing.text_normalization.optimal_path import AmbiguousRewrite, guarded_best_path
 from nemo_text_processing.text_normalization.preprocessing_utils import additional_split
 from nemo_text_processing.text_normalization.token_parser import PRESERVE_ORDER_KEY, TokenParser
 from nemo_text_processing.utils.logging import logger
@@ -98,7 +103,9 @@ class Normalizer:
             Note: punct_post_process flag in normalize() supports all languages.
         max_number_of_permutations_per_split: a maximum number
             of permutations which can be generated from input sequence of tokens.
-        verbose: whether to print intermediate meta information
+        lookahead_dir: optional exported lookahead tagger directory, built for this language and input case.
+        defer_cardinal: defer top-level English cardinal rendering, with exact baseline fallback.
+        runtime_dir: complete paired deferred runtime exported by export_runtime().
     """
 
     def __init__(
@@ -112,16 +119,51 @@ class Normalizer:
         lm: bool = False,
         post_process: bool = True,
         max_number_of_permutations_per_split: int = 729,
+        lookahead_dir: str = None,
+        defer_cardinal: bool = False,
+        runtime_dir: str = None,
     ):
         assert input_case in ["lower_cased", "cased"]
+        if (defer_cardinal or runtime_dir) and (lang != 'en' or not deterministic or lm):
+            raise ValueError('Deferred cardinal runtime requires deterministic English TN without an LM.')
+        if runtime_dir and (lookahead_dir or whitelist):
+            raise ValueError(
+                'runtime_dir contains the paired grammars; do not combine it with lookahead_dir or whitelist.'
+            )
+        if defer_cardinal and lookahead_dir:
+            raise ValueError('Load a complete deferred bundle with runtime_dir, not a tagger-only lookahead_dir.')
+        if lookahead_dir and (not deterministic or lm or whitelist):
+            raise ValueError('Lookahead requires deterministic TN; bake any whitelist into the exported tagger.')
 
+        self.defer_cardinal = bool(defer_cardinal or runtime_dir)
+        self.whitelist = whitelist
+        self._whitelist_sha256 = (
+            hashlib.sha256(Path(whitelist).read_bytes()).hexdigest() if self.defer_cardinal and whitelist else None
+        )
+        self._baseline_normalizer = None
+        self._runtime_bundle = None
+        self._max_numeric_digits = 12
+        self.last_fallback_reason = None
+        if runtime_dir:
+            from nemo_text_processing.text_normalization.deferred_runtime import load_deferred_runtime
+
+            self._runtime_bundle = load_deferred_runtime(runtime_dir, language=lang, input_case=input_case)
+            if post_process and self._runtime_bundle.post_processor is None:
+                raise ValueError(
+                    'This bundle has no post-processor; use post_process=False or export a matching bundle.'
+                )
+            self._max_numeric_digits = self._runtime_bundle.max_numeric_digits
+        elif self.defer_cardinal:
+            from nemo_text_processing.text_normalization.deferred_runtime import deferred_cache_directory
+
+            cache_dir = deferred_cache_directory(cache_dir)
         self.post_processor = None
 
         if lang == "en":
             from nemo_text_processing.text_normalization.en.verbalizers.post_processing import PostProcessingFst
             from nemo_text_processing.text_normalization.en.verbalizers.verbalize_final import VerbalizeFinalFst
 
-            if post_process:
+            if post_process and not runtime_dir:
                 self.post_processor = PostProcessingFst(cache_dir=cache_dir, overwrite_cache=overwrite_cache)
 
             if deterministic:
@@ -199,21 +241,65 @@ class Normalizer:
             raise NotImplementedError(f"Language {lang} has not been supported yet.")
 
         self.input_case = input_case
-        self.tagger = ClassifyFst(
-            input_case=self.input_case,
-            deterministic=deterministic,
-            cache_dir=cache_dir,
-            overwrite_cache=overwrite_cache,
-            whitelist=whitelist,
-        )
-
-        self.verbalizer = VerbalizeFinalFst(
-            deterministic=deterministic, cache_dir=cache_dir, overwrite_cache=overwrite_cache
-        )
+        if runtime_dir:
+            self.tagger = self._runtime_bundle.tagger
+            self.verbalizer = self._runtime_bundle.verbalizer
+            self.post_processor = self._runtime_bundle.post_processor if post_process else None
+            baseline_tagger = self._runtime_bundle.baseline_tagger
+            baseline_verbalizer = self._runtime_bundle.baseline_verbalizer
+        elif self.defer_cardinal:
+            raw_kwargs = dict(
+                input_case=input_case, cache_dir=cache_dir, overwrite_cache=overwrite_cache, whitelist=whitelist
+            )
+            self.tagger = ClassifyFst(defer_cardinal=True, **raw_kwargs)
+            self.verbalizer = VerbalizeFinalFst(
+                cache_dir=cache_dir, overwrite_cache=overwrite_cache, defer_cardinal=True
+            )
+            baseline_cache = cache_dir
+            if whitelist and cache_dir is not None and cache_dir != 'None':
+                baseline_cache = str(Path(cache_dir) / ('baseline_whitelist_' + self._whitelist_sha256))
+            baseline_tagger = ClassifyFst(
+                input_case=input_case, cache_dir=baseline_cache, overwrite_cache=overwrite_cache, whitelist=whitelist
+            )
+            baseline_verbalizer = VerbalizeFinalFst(cache_dir=cache_dir, overwrite_cache=overwrite_cache)
+        else:
+            self.tagger = (
+                LookaheadTagger(lookahead_dir, language=lang, input_case=input_case, mode='tn')
+                if lookahead_dir
+                else ClassifyFst(
+                    input_case=self.input_case,
+                    deterministic=deterministic,
+                    cache_dir=cache_dir,
+                    overwrite_cache=overwrite_cache,
+                    whitelist=whitelist,
+                )
+            )
+            if lookahead_dir and self.tagger.metadata.get('defer_cardinal'):
+                raise ValueError('Load a complete deferred bundle with runtime_dir, not a tagger-only lookahead_dir.')
+            self.verbalizer = VerbalizeFinalFst(
+                deterministic=deterministic, cache_dir=cache_dir, overwrite_cache=overwrite_cache
+            )
         self.max_number_of_permutations_per_split = max_number_of_permutations_per_split
         self.parser = TokenParser()
         self.lang = lang
         self.moses_detokenizer = MosesDetokenizer(lang=lang)
+        if self.defer_cardinal:
+            baseline = copy.copy(self)
+            baseline.tagger, baseline.verbalizer = baseline_tagger, baseline_verbalizer
+            baseline.defer_cardinal = False
+            baseline._baseline_normalizer = None
+            baseline._runtime_bundle = None
+            baseline.parser = TokenParser()
+            baseline.moses_detokenizer = MosesDetokenizer(lang=lang)
+            self._baseline_normalizer = baseline
+
+    def export_runtime(self, output_dir, *, lookahead=True):
+        """Atomically export the paired raw and fallback grammars for serving."""
+        if not self.defer_cardinal:
+            raise ValueError('export_runtime requires defer_cardinal=True or a loaded deferred runtime.')
+        from nemo_text_processing.text_normalization.deferred_runtime import export_deferred_runtime
+
+        return export_deferred_runtime(self, output_dir, lookahead=lookahead)
 
     def normalize_list(
         self,
@@ -342,6 +428,31 @@ class Normalizer:
     def normalize(
         self, text: str, verbose: bool = False, punct_pre_process: bool = False, punct_post_process: bool = False
     ) -> str:
+        """Convert written text to spoken form with the requested punctuation processing.
+
+        Deferred mode retries the ordinary pipeline on ambiguous best readings
+        and bypasses optimization for numeric spans longer than twelve digits.
+        ``last_fallback_reason`` describes this call on the current instance.
+        """
+        baseline = getattr(self, '_baseline_normalizer', None)
+        if baseline is None:
+            return self._normalize(text, verbose, punct_pre_process, punct_post_process)
+        self.last_fallback_reason = None
+        spans = re.findall(r'[0-9][0-9,.]*', text)
+        outside_scope = any(sum(char.isdigit() for char in span) > self._max_numeric_digits for span in spans)
+        if not outside_scope:
+            try:
+                return self._normalize(text, verbose, punct_pre_process, punct_post_process)
+            except AmbiguousRewrite:
+                self.last_fallback_reason = 'ambiguous_rewrite'
+        else:
+            self.last_fallback_reason = 'numeric_scope'
+        baseline.post_processor = self.post_processor
+        return baseline.normalize(text, verbose, punct_pre_process, punct_post_process)
+
+    def _normalize(
+        self, text: str, verbose: bool = False, punct_pre_process: bool = False, punct_post_process: bool = False
+    ) -> str:
         """
         Main function. Normalizes tokens from written to spoken form
             e.g. 12 kg -> twelve kilograms
@@ -390,6 +501,8 @@ class Normalizer:
                     logger.warning(f"No permutations were generated from tokens {s}")
                     return text
                 output += ' ' + Normalizer.select_verbalizer(verbalizer_lattice)
+            except AmbiguousRewrite:
+                raise
             except Exception as e:
                 logger.warning("Failed text: " + text + str(e))
                 return text
@@ -653,8 +766,15 @@ class Normalizer:
 
         Returns: tagged lattice
         """
-        lattice = text @ self.tagger.fst
-        return lattice
+        if isinstance(self.tagger, LookaheadTagger):
+            lattice = self.tagger.compose(text)
+        else:
+            lattice = text @ self.tagger.fst
+        return (
+            guarded_best_path(lattice, tagger=True)
+            if getattr(self, '_baseline_normalizer', None) is not None
+            else lattice
+        )
 
     @staticmethod
     def select_tag(lattice: 'pynini.FstLike') -> str:
@@ -680,7 +800,7 @@ class Normalizer:
         Returns: verbalized lattice
         """
         lattice = tagged_text @ self.verbalizer.fst
-        return lattice
+        return guarded_best_path(lattice) if getattr(self, '_baseline_normalizer', None) is not None else lattice
 
     @staticmethod
     def select_verbalizer(lattice: 'pynini.FstLike') -> str:
@@ -788,6 +908,12 @@ def parse_args():
         type=str,
     )
     parser.add_argument("--n_jobs", default=-2, type=int, help="The maximum number of concurrently running jobs")
+    parser.add_argument('--lookahead_dir', help='Directory containing an exported OpenFst lookahead tagger')
+    parser.add_argument(
+        '--defer_cardinal', action='store_true', help='Enable guarded deferred English cardinal rendering'
+    )
+    parser.add_argument('--runtime_dir', help='Load a complete paired deferred runtime bundle')
+    parser.add_argument('--export_runtime', help='Export a paired deferred runtime with lookahead to a new directory')
     parser.add_argument("--batch_size", default=200, type=int, help="Number of examples for each process")
     parser.add_argument(
         "--max_number_of_permutations_per_split",
@@ -802,7 +928,7 @@ if __name__ == "__main__":
     args = parse_args()
     whitelist = os.path.abspath(args.whitelist) if args.whitelist else None
 
-    if not args.input_string and not args.input_file:
+    if not args.input_string and not args.input_file and not args.export_runtime:
         raise ValueError("Either `--text` or `--input_file` required")
 
     normalizer = Normalizer(
@@ -813,7 +939,12 @@ if __name__ == "__main__":
         whitelist=whitelist,
         lang=args.language,
         max_number_of_permutations_per_split=args.max_number_of_permutations_per_split,
+        lookahead_dir=args.lookahead_dir,
+        defer_cardinal=args.defer_cardinal,
+        runtime_dir=args.runtime_dir,
     )
+    if args.export_runtime:
+        print(normalizer.export_runtime(args.export_runtime))
     start_time = perf_counter()
     if args.input_string:
         output = normalizer.normalize(

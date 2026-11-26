@@ -38,20 +38,34 @@ class VerbalizeFinalFst(GraphFst):
             for False multiple options (used for audio-based normalization)
         cache_dir: path to a dir with .far grammar file. Set to None to avoid using cache.
         overwrite_cache: set to True to overwrite .far files
+        defer_cardinal: experimental; requires a matching deferred-cardinal tagger.
     """
 
-    def __init__(self, deterministic: bool = True, cache_dir: str = None, overwrite_cache: bool = False):
+    def __init__(
+        self,
+        deterministic: bool = True,
+        cache_dir: str = None,
+        overwrite_cache: bool = False,
+        defer_cardinal: bool = False,
+    ):
         super().__init__(name="verbalize_final", kind="verbalize", deterministic=deterministic)
+        if defer_cardinal and not deterministic:
+            raise ValueError('Deferred cardinal verbalization currently supports deterministic TN only.')
 
         far_file = None
         if cache_dir is not None and cache_dir != "None":
             os.makedirs(cache_dir, exist_ok=True)
-            far_file = os.path.join(cache_dir, f"en_tn_{deterministic}_deterministic_verbalizer.far")
+            cache_variant = ''
+            if defer_cardinal:
+                from nemo_text_processing.text_normalization.deferred_runtime import deferred_cache_suffix
+
+                cache_variant = deferred_cache_suffix()
+            far_file = os.path.join(cache_dir, f"en_tn_{deterministic}_deterministic{cache_variant}_verbalizer.far")
         if not overwrite_cache and far_file and os.path.exists(far_file):
             self.fst = pynini.Far(far_file, mode="r")["verbalize"]
             logger.info(f'VerbalizeFinalFst graph was restored from {far_file}.')
         else:
-            verbalize = VerbalizeFst(deterministic=deterministic).fst
+            verbalize = VerbalizeFst(deterministic=deterministic, defer_cardinal=defer_cardinal).fst
             word = WordFst(deterministic=deterministic).fst
             types = verbalize | word
 
